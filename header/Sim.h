@@ -18,6 +18,12 @@ struct SimArgs {
     double sickness_chance = ANNUAL_SICKNESS_CHANCE;
     double ability_stddev = PERSON_ABILITY_STDDEV;
     bool json = false;
+    unsigned int seed = 0;
+    bool fixed_seed = false;
+
+
+
+
 };
 
 class Sim {

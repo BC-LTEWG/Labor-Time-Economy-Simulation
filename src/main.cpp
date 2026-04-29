@@ -12,6 +12,7 @@ void print_usage() {
     std::cout << "\t-m N: Set the initial number of products per machine to N." << std::endl;
     std::cout << "\t-r N: Set the initial number of producers to N." << std::endl;
     std::cout << "\t-d N: Set the initial number of distributors to N." << std::endl;
+    std::cout << "\t-e N: Set the random seed to N." << std::endl;
     std::cout << "\t-s N: Set the annual chance of an agent getting sick." << std::endl;
     std::cout << "\t-j: Write JSON log traces to stdout." << std::endl;
 }
@@ -34,11 +35,12 @@ void set_params(int argc, const char ** argv, SimArgs& args) {
                 case 'm':
                 case 'r':
                 case 'd':
+                case 'e':
                     flag = argv[i][j];
                     ++i;
                     value =
                         static_cast<unsigned int>(strtol(argv[i], NULL, 10));
-                    if (value <= 0) {
+                    if (value <= 0 && flag != 'e') {
                         error = true;
                     } else {
                         switch (flag) {
@@ -65,6 +67,10 @@ void set_params(int argc, const char ** argv, SimArgs& args) {
                                 break;
                             case 'd':
                                 args.num_distributors = value;
+                                break;
+                            case 'e':
+                                args.seed = value;
+                                args.fixed_seed = true;
                                 break;
                             default:
                                 error = true;
