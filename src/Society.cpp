@@ -71,10 +71,10 @@ void Society::on_time_step() {
     for (Firm * firm : firms) {
         firm->on_time_step();
     }
-    if (Sim::get_current_time_step() >= WORK_HOURS_UPDATE_START &&
-            Sim::get_current_time_step() % WORK_HOURS_UPDATE_PERIOD == 0) {
-        update_work_hours_daily();
-    }
+    // if (Sim::get_current_time_step() >= WORK_HOURS_UPDATE_START &&
+    //         Sim::get_current_time_step() % WORK_HOURS_UPDATE_PERIOD == 0) {
+    //     update_work_hours_daily();
+    // }
 }
 
 void Society::set_initial_products() {
@@ -158,6 +158,14 @@ double Society::get_busyness() {
     double busyness = 0.0;
     for (Person * person : people) {
         busyness += person->get_busyness();
+    }
+    return busyness / people.size();
+}
+
+double Society::get_weekly_busyness() {
+    double busyness = 0.0;
+    for (Person * person : people) {
+        busyness += person->get_weekly_busyness();
     }
     return busyness / people.size();
 }

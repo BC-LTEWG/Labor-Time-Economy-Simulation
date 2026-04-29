@@ -90,6 +90,14 @@ double Firm::get_busyness() {
     return workers.size() > 0 ? busyness / workers.size() : 0.0;
 }
 
+double Firm::get_weekly_busyness() {
+    double busyness = 0.0;
+    for (Person * worker : workers) {
+        busyness += worker->get_weekly_busyness();
+    }
+    return workers.size() > 0 ? busyness / workers.size() : 0.0;
+}
+
 std::vector<Person *> Firm::propose_transfer(int workers_wanted) {
     double firm_busyness = get_busyness();
     double societal_busyness = society->get_busyness();
@@ -97,6 +105,7 @@ std::vector<Person *> Firm::propose_transfer(int workers_wanted) {
             (societal_busyness - TRANSFER_BUSYNESS_THRESHOLD))); 
     max_workers_to_transfer = std::max(max_workers_to_transfer, workers_wanted);
     log_busyness(firm_busyness, societal_busyness, max_workers_to_transfer);
+    log_weekly_busyness(get_weekly_busyness(), society->get_weekly_busyness(), max_workers_to_transfer);
     if (firm_busyness >= societal_busyness - TRANSFER_BUSYNESS_THRESHOLD) {
         return {};
     }
@@ -187,8 +196,8 @@ void Firm::reorder_input_product_to_threshold(
             reorder_deadline
             );
     if (!reorder_quantity) return;
-    for (int i = FIRM_REORDER_ATTEMPTS; i > 0; i--) {
-        double reorder_prop = FIRM_REORDER_START * i / FIRM_REORDER_ATTEMPTS;
+    for (int i = 3; i > 0; i--) {
+        double reorder_prop = FIRM_REORDER_START * i / 3;
         order->quantity = std::ceil(reorder_quantity * reorder_prop);
         order->requested_turnaround_time = std::max(1.0, reorder_deadline * reorder_prop);
         Producer * chosen_producer = send_order(order);
@@ -433,6 +442,21 @@ void Firm::log_busyness(
     Logger::get_instance()->log(
         get_client_type(),
         "busyness",
+        id,
+        firm_busyness,
+        societal_busyness,
+        max_workers_for_transfer
+    );
+}
+
+void Firm::log_weekly_busyness(
+    double firm_busyness,
+    double societal_busyness,
+    int max_workers_for_transfer
+) {
+    Logger::get_instance()->log(
+        get_client_type(),
+        "weekly_busyness",
         id,
         firm_busyness,
         societal_busyness,

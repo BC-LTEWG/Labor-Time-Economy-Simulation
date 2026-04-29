@@ -76,6 +76,7 @@ class Firm : public Agent {
     void receive_shipment(Plan * plan);
     void receive_payment(Plan * plan, int transaction_amount);
     double get_busyness();
+    double get_weekly_busyness();
     std::vector<Person *> propose_transfer(int workers_wanted);
     void finalize_transfer(Person * worker);
 
@@ -143,6 +144,7 @@ class Firm : public Agent {
     void log_reorder(const Product * product, int quantity);
     void log_initial_employment(const int worker_id, const int firm_id);
     void log_busyness(double firm_busyness, double societal_busyness, int max_workers_for_transfer);
+    void log_weekly_busyness(double firm_busyness, double societal_busyness, int max_workers_for_transfer);
     void log_employment_transfer(const int worker_id, const int old_employer_id, const int new_employer_id);
     void log_reorder_failure(const Product * product, int quantity);
     void log_transfer_request();

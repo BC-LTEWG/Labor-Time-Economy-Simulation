@@ -56,6 +56,10 @@ double Person::get_busyness() {
     return busyness;
 }
 
+double Person::get_weekly_busyness() {
+    return weekly_busyness;
+}
+
 void Person::train(std::unordered_map<Person::Ability, double> target_abilities) {
     // can introduce < 100% effectiveness on training later
     for (auto &pair : target_abilities) {
@@ -71,6 +75,7 @@ void Person::register_hours_worked(double hours_worked) {
 
 void Person::register_busyness() {
     busy_this_time_step = true;
+    weekly_hours_worked++;
 }
 
 bool Person::charge(double cost) {
@@ -197,6 +202,25 @@ void Person::update_busyness() {
     busy_this_time_step = false;
 }
 
+void Person::update_weekly_busyness() {
+    int t = Sim::get_current_time_step();
+    if (t < WEEK) {
+        weekly_busyness = static_cast<double>(weekly_hours_worked) / std::max(1, t);
+    } else if (t % WEEK == 0) {
+        double new_busyness = static_cast<double>(weekly_hours_worked) / WEEK;
+        weekly_hours_worked = 0;
+        busyness_history.push_back(new_busyness);
+        if (busyness_history.size() > MAX_BUSYNESS_HISTORY) {
+            busyness_history.erase(busyness_history.begin());
+        }
+        double sum = 0.0;
+        for (double busy : busyness_history) {
+            sum = sum + busy;
+        }
+        weekly_busyness = sum / busyness_history.size();
+    }
+}
+
 void Person::on_time_step() {
 	++age;
     consume();
@@ -204,6 +228,7 @@ void Person::on_time_step() {
 	if (will_retire()) { retire(); }
 	update_health_status();
     update_busyness();
+    update_weekly_busyness();
 }
 
 void Person::set_firm(Firm * workplace) {

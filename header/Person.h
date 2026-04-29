@@ -20,6 +20,7 @@ class Person : public Agent {
   
 	std::unordered_map<Ability, double>& get_abilities();
     double get_busyness();
+    double get_weekly_busyness();
 	void train(std::unordered_map<Ability, double> target_abilities);
     HealthStatus get_health_status();
     float productivity();
@@ -42,7 +43,10 @@ class Person : public Agent {
     Firm * firm = nullptr;
     double account;
     bool busy_this_time_step = false;
+    int weekly_hours_worked = 0;
+    std::vector<double> busyness_history;
     double busyness = 0.0;
+    double weekly_busyness = 0.0;
  	std::vector<Distributor *> ranked_distributors;
     static const char * ability_names[];
     static const char * health_status_names[];
@@ -54,6 +58,7 @@ class Person : public Agent {
 	void retire();
 	void update_health_status();
     void update_busyness();
+    void update_weekly_busyness();
     void log_hours(const double hours);
     void log_purchase(const std::string& product_name, int quantity);
     void log_shopping();
