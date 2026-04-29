@@ -43,7 +43,6 @@ class Person : public Agent {
     double account;
     bool busy_this_time_step = false;
     double busyness = 0.0;
-    int busy_hours_in_window = 0;
  	std::vector<Distributor *> ranked_distributors;
     static const char * ability_names[];
     static const char * health_status_names[];
