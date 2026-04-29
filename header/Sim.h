@@ -34,7 +34,7 @@ class Sim {
         static double get_annual_sickness_chance();
         static double get_person_ability_stddev();
         static bool does_json();
-        static unsigned int get_current_time_step();
+        static int get_current_time_step();
         static std::random_device& get_random_device();
         static std::mt19937& get_random_generator();
         void set_params(SimArgs& args);
@@ -44,6 +44,6 @@ class Sim {
         SimArgs args;
         std::random_device rd;
         std::mt19937 gen;
-        unsigned int current_time_step;
+        int current_time_step;
         Society * society;
 };

@@ -139,7 +139,7 @@ class Logger {
                 if (client >= ERROR) {
                     throw std::invalid_argument("Logging client does not exist");
                 }
-                unsigned int time_step = Sim::get_current_time_step();
+                int time_step = Sim::get_current_time_step();
                 std::cout <<
                     "{\"t\":" << time_step << "," <<
                     "\"client\":\"" << clients[client] << "\"," <<

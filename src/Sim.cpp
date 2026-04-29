@@ -69,7 +69,7 @@ std::mt19937& Sim::get_random_generator() {
     return get_instance().gen;
 }
 
-unsigned int Sim::get_current_time_step() {
+int Sim::get_current_time_step() {
 	return get_instance().current_time_step;
 }
 

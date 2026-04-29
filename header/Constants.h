@@ -11,7 +11,7 @@ const unsigned int YEAR = DAY * 365;
 
 const unsigned int INITIAL_WORK_HOURS_DAILY = 8;
 const unsigned int INITIAL_WORK_DAYS_WEEKLY = 5;
-const double INITIAL_ACCOUNT_MULT = 10;
+const double INITIAL_ACCOUNT_DURATION = 2 * MONTH;
 const int WORK_HOURS_UPDATE_START = YEAR;
 const int WORK_HOURS_UPDATE_PERIOD = MONTH;
 const double INEFFICIENCY_OF_WORK = 1.5;
@@ -52,8 +52,8 @@ const int MACHINE_LIFETIME_MIN = 1000;
 const int MACHINE_LIFETIME_MAX = MACHINE_LIFETIME_MIN * 10;
 
 const int FIRM_STOCKPILE_DURATION = 1.5 * WEEK;
-const unsigned int FIRM_DEMAND_WINDOW_MIN = WEEK;
-const unsigned int FIRM_DEMAND_WINDOW_MAX = MONTH;
+const int FIRM_DEMAND_WINDOW_MIN = WEEK;
+const int FIRM_DEMAND_WINDOW_MAX = MONTH;
 const double FIRM_REORDER_START = 0.25;
 const int FIRM_REORDER_ATTEMPTS = 10;
 const double DEADLINE_SAFETY_MULT = 0.6;

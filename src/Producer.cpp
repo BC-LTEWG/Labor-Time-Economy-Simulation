@@ -189,9 +189,7 @@ bool Producer::is_within_work_schedule() const {
     return Sim::get_current_time_step() % DAY <
         Society::get_instance()->get_current_work_hours_daily() &&
         Sim::get_current_time_step() / DAY % 7 <
-        static_cast<unsigned int>(
-            Society::get_instance()->get_current_work_days_weekly()
-        );
+        Society::get_instance()->get_current_work_days_weekly() ;
 }
 
 void Producer::move_plans_forward_one_step() {
