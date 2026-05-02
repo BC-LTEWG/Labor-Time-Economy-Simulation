@@ -108,7 +108,21 @@ bool Producer::pursue_order(Order * order) {
 	plans_in_progress.push_back(draft_plan);
     log_pursued_plan(draft_plan);
     society->log_total_employment();
+    // accounting
+    plans_in_progress.back()->prd +=
+        order->product->price_per_unit * order->quantity;
 	return true;
+}
+
+int Producer::get_max_order_quantity(Product * product) {
+    int max_order_quantity = INT_MAX;
+    for (std::pair<Product * const, double>& input : product->inputs_per_unit) {
+        int input_max_order_quantity = static_cast<int>(
+                input_inventory[input.first] / input.second
+                );
+        max_order_quantity = std::min(max_order_quantity, input_max_order_quantity);
+    }
+    return max_order_quantity;
 }
 
 void Producer::start_plan(Plan * plan) {

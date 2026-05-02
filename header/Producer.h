@@ -26,6 +26,7 @@ class Producer : public Firm {
 	int draft_plan_or_reject(Order * order);
 	void drop_order(Order * order);
 	bool pursue_order(Order * order);
+    int get_max_order_quantity(Product * product);
     double get_input_products_account();
 
   private:
