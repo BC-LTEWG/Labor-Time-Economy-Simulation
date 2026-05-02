@@ -116,7 +116,10 @@ void Firm::finalize_transfer(Person * worker) {
 Producer * Firm::send_order(Order * order) {
     Producer * chosen_producer = select_fastest_supplier_for_order(order);
     if (chosen_producer) {
-        pursue_order_with_chosen_producer(order, chosen_producer);
+        chosen_producer->pursue_order(order);
+        product_to_outbound_orders[order->product].insert(order);
+        log_reorder(order->product, order->quantity);
+        log_accepted_order(order->product, order->requested_turnaround_time);
     }
     return chosen_producer;
 }
@@ -125,13 +128,8 @@ Producer * Firm::select_fastest_supplier_for_order(Order * order) {
     int order_time = INT_MAX;
     Producer * chosen_producer = nullptr;
 
-    std::vector<Producer *> primary_producers;
     for (Producer * producer : suppliers) {
-        if (producer->can_produce(order->product)) {
-            primary_producers.push_back(producer);
-        }
-    }
-    for (Producer * producer : primary_producers) {
+        if (!producer->can_produce(order->product)) continue;
         int draft_plan_time = producer->draft_plan_or_reject(order);
         if (draft_plan_time == DRAFT_ORDER_REJECTED) {
             producer->drop_order(order);
@@ -148,16 +146,6 @@ Producer * Firm::select_fastest_supplier_for_order(Order * order) {
     return chosen_producer;
 }
 
-void Firm::pursue_order_with_chosen_producer(
-        Order * order,
-        Producer * chosen_producer
-        ) {
-    chosen_producer->pursue_order(order);
-    chosen_producer->plans_in_progress.back()->prd +=
-        order->product->price_per_unit * order->quantity;
-    product_to_outbound_orders[order->product].insert(order);
-}
-
 double Firm::get_reorder_threshold(Product * product) {
     return get_demand(product) * FIRM_STOCKPILE_DURATION;
 }
@@ -168,37 +156,6 @@ int Firm::get_pending_input_inventory(Product * product) {
         pending_inventory += order->quantity;
     }
     return pending_inventory;
-}
-
-void Firm::reorder_input_product_to_threshold(
-        Product * product,
-        double threshold,
-        int pending_inventory
-        ) {
-    double reorder_quantity = threshold;
-    double reorder_deadline = 
-        pending_inventory *
-        FIRM_STOCKPILE_DURATION /
-        threshold ;
-    Order * order = new Order(
-            product,
-            reorder_quantity,
-            this,
-            reorder_deadline
-            );
-    if (!reorder_quantity) return;
-    for (int i = FIRM_REORDER_ATTEMPTS; i > 0; i--) {
-        double reorder_prop = FIRM_REORDER_START * i / FIRM_REORDER_ATTEMPTS;
-        order->quantity = std::ceil(reorder_quantity * reorder_prop);
-        order->requested_turnaround_time = std::max(1.0, reorder_deadline * reorder_prop);
-        Producer * chosen_producer = send_order(order);
-        if (chosen_producer) {
-            log_reorder(product, reorder_quantity);
-            log_accepted_order(product, order->requested_turnaround_time);
-            return;
-        }
-    }
-    log_reorder_failure(product, reorder_quantity);
 }
 
 void Firm::check_and_reorder_inputs() {
@@ -212,9 +169,41 @@ void Firm::check_and_reorder_input(Product * product) {
     log_demand(product, threshold);
     int pending_inventory = get_pending_input_inventory(product);
     log_pending_inventory(product, pending_inventory);
-    if (pending_inventory < threshold) {
-        reorder_input_product_to_threshold(product, threshold, pending_inventory);
+    if (pending_inventory >= threshold || !threshold) return;
+    Order * order = compute_best_reorder(product, threshold, pending_inventory);
+    if (!send_order(order)) {
+        log_reorder_failure(product, order->quantity);
     }
+}
+
+Order * Firm::compute_best_reorder(
+        Product * product, 
+        double threshold,
+        int pending_inventory
+        ) {
+    double max_self_reorder_quantity = threshold * FIRM_REORDER_MAX_PROP;
+    double max_producer_reorder_quantity = 0;
+    for (Producer * producer : suppliers) {
+        if (!producer->can_produce(product)) continue;
+        max_producer_reorder_quantity = std::max(
+                max_producer_reorder_quantity,
+                static_cast<double>(producer->get_max_order_quantity(product))
+                );
+    }
+    double reorder_quantity = std::min(
+            max_self_reorder_quantity,
+            max_producer_reorder_quantity
+            );
+    double reorder_deadline = 
+        pending_inventory *
+        FIRM_STOCKPILE_DURATION / threshold * 
+        reorder_quantity / threshold;
+    return new Order(
+            product,
+            std::ceil(reorder_quantity),
+            this,
+            std::max(1.0, reorder_deadline)
+            );
 }
 
 int Firm::predict_workers_needed(Plan * plan) {

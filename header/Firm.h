@@ -101,21 +101,17 @@ class Firm : public Agent {
 
     Producer * send_order(Order * order);
     Producer * select_fastest_supplier_for_order(Order * order);
-    void pursue_order_with_chosen_producer(
-        Order * order,
-        Producer * chosen_producer
-    );
     bool remove_input_from_inventory(Product * product, int quantity);
     void add_input_inventory(Product * product, int quantity);
     double get_reorder_threshold(Product * product);
     int get_pending_input_inventory(Product * product);
-    void reorder_input_product_to_threshold(
+    void check_and_reorder_inputs();
+    void check_and_reorder_input(Product * product);
+    Order * compute_best_reorder(
         Product * product, 
         double threshold,
         int pending_inventory
     );
-    void check_and_reorder_inputs();
-    void check_and_reorder_input(Product * product);
 
 	int predict_workers_needed(Plan * plan);
     void assign_workers(
