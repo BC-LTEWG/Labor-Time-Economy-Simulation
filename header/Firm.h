@@ -57,7 +57,7 @@ struct Order {
 
 struct DemandSignal {
     int quantity;
-    unsigned int timestep;
+    int timestep;
 };
 
 class Firm : public Agent {
@@ -105,10 +105,6 @@ class Firm : public Agent {
         Order * order,
         Producer * chosen_producer
     );
-    void drop_order_from_unchosen_producer(
-        Order * order,
-        Producer * unchosen_producer
-    );
     bool remove_input_from_inventory(Product * product, int quantity);
     void add_input_inventory(Product * product, int quantity);
     double get_reorder_threshold(Product * product);
@@ -132,9 +128,10 @@ class Firm : public Agent {
     void initialize_plan_budget(
         Plan * draft_plan
     );
+    double calculate_machinery_cost_for_plan(Plan * draft_plan);
 	void assign_plan_dependent_fields(Plan * draft_plan, std::vector<Person::Ability>& required_abilities);
-	void train_workers(std::vector<Person *>& workers, std::vector<Person::Ability>& required_abilities);
     void add_demand_signal(Product * product, int quantity);
+    Plan * draft_plan_with_required_abilities(Order * order, std::vector<Person::Ability>& required_abilities); 
     void apply_demand_window();
     double get_demand(Product * product);
     virtual std::unordered_set<Product *> get_products_to_reorder() = 0;

@@ -19,7 +19,7 @@
 #include "Sim.h"
 #include "Society.h"
 
-Society *Society::get_instance() {
+Society * Society::get_instance() {
     static Society *instance = new Society;
     return instance;
 }
@@ -31,25 +31,24 @@ Society::Society() :
     static unsigned int unique_id = 0;
     id = unique_id++;
     set_initial_products();
-    for (Product *product : products) {
+    for (Product * product : products) {
         Logger::get_instance()->log(Logger::SOCIETY, "price", product->id, product->price_per_unit);
         Logger::get_instance()->log(Logger::SOCIETY, "order_size", product->id, product->order_size);
     }
     for (unsigned int i = 0; i < Sim::get_num_producers(); i++) {
-        Producer *producer = new Producer(this, {goods[i % Sim::get_num_products()]});
+        Producer * producer = new Producer(this, {goods[i % Sim::get_num_products()]});
         producers.push_back(producer);
         firms.push_back(producer);
     }
+    std::unordered_set<Product *> distributor_catalog(goods.begin(), goods.end());
     for (unsigned int i = 0; i < Sim::get_num_distributors(); i++) {
-        Distributor *distributor = new Distributor(this, {goods[i % Sim::get_num_products()]});
+        Distributor * distributor = new Distributor(this, distributor_catalog);
         distributors.push_back(distributor);
         firms.push_back(distributor);
     }
-    for (Firm *firm : firms) {
-        for (Producer *producer : producers) {
-            if (producer != firm) {
-                firm->add_supplier(producer);
-            }
+    for (Firm * firm : firms) {
+        for (Producer * producer : producers) {
+            firm->add_supplier(producer);
         }
     }
     set_initial_account();
@@ -66,10 +65,10 @@ unsigned int Society::get_id() {
 }
 
 void Society::on_time_step() {
-    for (Person *person : people) {
+    for (Person * person : people) {
         person->on_time_step();
     }
-    for (Firm *firm : firms) {
+    for (Firm * firm : firms) {
         firm->on_time_step();
     }
     if (Sim::get_current_time_step() >= WORK_HOURS_UPDATE_START &&
@@ -284,8 +283,8 @@ unsigned int Society::get_current_work_days_weekly() {
 
 void Society::set_initial_account() {
     initial_account = 0.0;
-    for (Product *good : goods) {
-        ConsumerGood *consumer_good = get_consumer_good(good);
+    for (Product * good : goods) {
+        ConsumerGood * consumer_good = get_consumer_good(good);
         if (!consumer_good) {
             std::cerr << "consumer good does not exist: "
                       << good->product_name << std::endl;
@@ -294,7 +293,7 @@ void Society::set_initial_account() {
         initial_account += consumer_good->price_per_unit *
                            consumer_good->mean_consumption_frequency;
     }
-    initial_account *= FIRM_DEMAND_WINDOW_MIN * INITIAL_ACCOUNT_MULT;
+    initial_account *= INITIAL_ACCOUNT_DURATION;
 }
 
 int Society::get_initial_account() {

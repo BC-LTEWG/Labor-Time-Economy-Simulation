@@ -23,8 +23,8 @@ Distributor::Distributor(
         society->add_consumer_good(product);
         int quantity =
             product->mean_consumption_frequency *
-            (FIRM_STOCKPILE_DURATION + FIRM_DEMAND_WINDOW_MIN * DISTRIBUTOR_INITIAL_INVENTORY_MULT) * 
-            Sim::get_num_people();
+            (FIRM_STOCKPILE_DURATION + FIRM_DEMAND_WINDOW_MIN) * 
+            Sim::get_num_people() / Sim::get_num_distributors();
         Order * order = new Order(product, quantity, this, 0);
         Plan * plan = new Plan;
         plan->order = order;
@@ -56,54 +56,39 @@ void Distributor::on_time_step() {
             worker->register_hours_worked(1);
         }
     }
-    check_expand_catalog();
 }
 
-int Distributor::get_inventory(Product * product) {
-    auto it = input_inventory.find(product);
-    if (it == input_inventory.end()) {
-        return 0;
-    }
-    return it->second;
-}
-
-bool Distributor::try_sell_goods(Product& product, int quantity, Person * person) {
+int Distributor::try_sell_goods(Product& product, int quantity, Person * person) {
     ConsumerGood * consumer_good = society->get_consumer_good(&product);
     if (!consumer_good) {
         std::cerr << "No consumer good for product " << product.product_name << std::endl;
-        return false;
+        return 0;
     }
     add_demand_signal(&product, quantity);
-    int available = catalog.count(&product) ? input_inventory[&product] : 0;
+    check_and_reorder_input(&product);
+    if (!catalog.count(&product)) return 0;
+    int available = std::min(get_inventory(&product), quantity);
     if (available < quantity) {
         log_shortfall(product.product_name, quantity - available);
-        return false;
     }
-    double cost = quantity * consumer_good->price_per_unit;
+    double cost = available * consumer_good->price_per_unit;
     if (!person->charge(cost)) {
         std::cerr << "Person cannot afford " << quantity
             << " units of " << product.product_name << " costing " 
             << cost << std::endl;
-        return false;
+        return 0;
     } 
     Plan * plan = product_to_plan[&product];
-    plan->outgoing_units_consumed += quantity;
-    plan->prd += cost;
+    if (plan) {
+        plan->outgoing_units_consumed += quantity;
+        plan->prd += cost;
+    }
     remove_input_from_inventory(&product, quantity);
-    check_and_reorder_input(&product);
-    return true;
+    return available;
 }
 
 std::unordered_set<Product *> Distributor::get_products_to_reorder() {
     return catalog;
-}
-
-void Distributor::check_expand_catalog() {
-    for (Product * product : society->get_goods()) {
-        if (get_demand(product) > EXPAND_CATALOG_DEMAND_THRESHOLD && !catalog.count(product)) {
-            catalog.insert(product);
-        }
-    }
 }
 
 void Distributor::log_shortfall(std::string product_name, int shortfall) {

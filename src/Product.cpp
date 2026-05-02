@@ -23,7 +23,9 @@ Product::Product(int id, const std::string& name) :
                 PRODUCT_LABOR_PER_UNIT_MIN,
                 PRODUCT_LABOR_PER_UNIT_MAX
                 );
-    living_labor_per_unit = (double)living_labor_dist(Sim::get_random_generator());
+    living_labor_per_unit = 
+        societal_living_labor_per_unit = 
+        living_labor_dist(Sim::get_random_generator());
     for (int i = 0; i < Person::NUM_ABILITIES; i++) {
         required_abilities.push_back((Person::Ability) i);
     }
