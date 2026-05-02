@@ -261,7 +261,8 @@ void Producer::log_pursued_plan(const Plan * draft_plan) {
             id,
             draft_plan->order->customer->get_id(),
             draft_plan->order->product->id,
-            draft_plan->order->quantity
+            draft_plan->order->quantity,
+            draft_plan->workers.size()
             );
 }
 
@@ -271,6 +272,7 @@ void Producer::log_ended_plan(const Plan * plan) {
             "ended_plan",
             id,
             plan->order->product->product_name,
-            plan->order->quantity
+            plan->order->quantity,
+            plan->order->quantity - plan->quantity_remaining
             );
 }
