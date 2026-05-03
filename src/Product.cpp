@@ -36,7 +36,6 @@ Product::Product(int id, const std::string& name) :
     static std::uniform_real_distribution<>
         consumption_freq_dist(0, 0.5);
     mean_consumption_frequency = consumption_freq_dist(Sim::get_random_generator());
-    mean_consumption_period = static_cast<int>(std::ceil(1 / mean_consumption_frequency));
 }
 
 void Product::set_inputs(std::vector<Product *>& goods) {
