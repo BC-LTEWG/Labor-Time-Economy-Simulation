@@ -207,10 +207,8 @@ bool Producer::is_within_work_schedule() const {
 }
 
 void Producer::move_plans_forward_one_step() {
-	for (
-            int i = static_cast<int>(plans_in_progress.size()) - 1;
-            i >= 0; i--) {
-		Plan * plan = plans_in_progress[i];
+    std::vector<Plan *> plans_still_in_progress;
+    for (Plan * plan : plans_in_progress) {
         if (plan->order->status == Order::ORDER_REQUESTED) {
 			start_plan(plan);
 		}
@@ -220,9 +218,11 @@ void Producer::move_plans_forward_one_step() {
 		}
 		if (plan->quantity_remaining <= 0) {
 			end_plan(plan);
-			plans_in_progress.erase(plans_in_progress.begin() + i);
-		}
+        } else {
+            plans_still_in_progress.push_back(plan);
+        }
     }
+    plans_in_progress = plans_still_in_progress;
 }
 
 std::unordered_set<Product *> Producer::get_products_to_reorder() {

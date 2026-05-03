@@ -213,7 +213,7 @@ int Firm::predict_workers_needed(Plan * plan) {
             WEEK /
             Sim::get_work_days_weekly() / 
             plan->local_work_hours_daily /
-            plan->order->requested_turnaround_time 
+            plan->order->requested_turnaround_time * 1
             );
 }
 
