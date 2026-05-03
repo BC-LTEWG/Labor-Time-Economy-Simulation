@@ -42,22 +42,21 @@ void set_params(int argc, const char ** argv, SimArgs& args) {
            arg == "-m" || arg == "--products-per-machine" || 
            arg == "-r" || arg == "--producers" || 
            arg == "-d" || arg == "--distributors") {
-            value =
-                static_cast<unsigned int>(strtol(argv[++i], NULL, 10));
 
-            if (value <= 0) {
-                    error = true;
-                } 
+            long negative_check = strtol(argv[++i], NULL, 10);
+            if(negative_check <= 0) error = true;
             else {
-                if (arg == "-n" || arg == "--time-steps") args.time_steps = value;
-                else if (arg == "-p" || arg == "--people") args.num_people = value;
-                else if (arg == "-h" || arg == "--work-hours") args.work_hours_daily = value;
-                else if (arg == "-w" || arg == "--work-days") args.work_days_weekly = value;
-                else if (arg == "-o" || arg == "--products") args.num_products = value;
-                else if (arg == "-m" || arg == "--products-per-machine") args.products_per_machine = value;
-                else if (arg == "-r" || arg == "--producers") args.num_producers = value;
-                else if (arg == "-d" || arg == "--distributors") args.num_distributors = value;
-            }
+                value =
+                    static_cast<unsigned int>(negative_check);
+                    if (arg == "-n" || arg == "--time-steps") args.time_steps = value;
+                    else if (arg == "-p" || arg == "--people") args.num_people = value;
+                    else if (arg == "-h" || arg == "--work-hours") args.work_hours_daily = value;
+                    else if (arg == "-w" || arg == "--work-days") args.work_days_weekly = value;
+                    else if (arg == "-o" || arg == "--products") args.num_products = value;
+                    else if (arg == "-m" || arg == "--products-per-machine") args.products_per_machine = value;
+                    else if (arg == "-r" || arg == "--producers") args.num_producers = value;
+                    else if (arg == "-d" || arg == "--distributors") args.num_distributors = value;
+                }
         }
         else if(arg == "-s" || arg == "--sick-chance") {
             dvalue = strtod(argv[++i], NULL);
