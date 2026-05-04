@@ -1,6 +1,5 @@
-#include <iostream>
-
 #include "Constants.h"
+#include "ConsumerGood.h"
 #include "Distributor.h"
 #include "Firm.h"
 #include "Logger.h"
@@ -34,7 +33,7 @@ void PriceController::update_price(Plan * plan) {
         hours += plan->labor_hours - plan->labor_hours_remaining;
         workers += plan->workers.size();
     }
-    double price = product->living_labor_per_unit = hours / units;
+    double price = product->societal_living_labor_per_unit = hours / units;
     for (std::pair<Product *, double> input : product->inputs_per_unit) {
         price += input.first->price_per_unit * input.second;
     }
@@ -46,6 +45,10 @@ void PriceController::update_price(Plan * plan) {
         price += machine_cost_per_hour * machine_hours_per_unit;
     }
     product->price_per_unit = price;
+    ConsumerGood * consumer_good = Society::get_instance()->get_consumer_good(product);
+    if (consumer_good) {
+        consumer_good->price_per_unit = price + DISTRIBUTION_LABOR_PER_UNIT;
+    }
     Logger::get_instance()->log(Logger::SOCIETY, "price", product->id, price);
 }
 

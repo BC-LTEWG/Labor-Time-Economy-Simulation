@@ -23,6 +23,7 @@ struct Product {
     std::vector<Machine *> machines_needed;
     std::unordered_map<Product *, double> inputs_per_unit;
  	double living_labor_per_unit; 
+    double societal_living_labor_per_unit;
 	std::vector<Person::Ability> required_abilities;
 	double mean_consumption_frequency;
 };

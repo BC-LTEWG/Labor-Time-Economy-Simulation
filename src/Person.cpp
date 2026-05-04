@@ -97,14 +97,15 @@ float Person::productivity() {
 }
 
 void Person::purchase_good(Product * product, int quantity) {
+    int purchased = 0;
     for (Distributor * distributor : ranked_distributors) {
-        if (distributor->try_sell_goods(*product, quantity, this)) {
-            inventory[product] += quantity;
-            log_purchase(product->product_name, quantity);
-            log_account();
-            return;
-        }
+        int available = distributor->try_sell_goods(*product, quantity, this);
+        quantity -= available;
+        inventory[product] += available;
+        purchased += available;
     }
+    log_purchase(product->product_name, purchased);
+    log_account();
 }
 
 void Person::consume() {

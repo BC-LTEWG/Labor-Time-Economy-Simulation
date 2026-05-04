@@ -18,13 +18,17 @@ using TupleDoubleDoubleInt = std::tuple<double, double, int>;
 using TupleIntDoubleInt = std::tuple<int, double, int>;
 using TupleString = std::tuple<std::string>;
 using TupleStringStringInt = std::tuple<std::string, std::string, int>;
+using TupleStringIntDouble = std::tuple<std::string, int, double>;
+using TupleIntIntIntInt = std::tuple<unsigned int, int, int, int>;
 using Tuple = std::variant<TupleNone,
       TupleInt,
       TupleIntInt,
       TupleDouble,
       TupleDoubleDoubleInt,
       TupleString,
-      TupleIntDoubleInt
+      TupleIntDoubleInt,
+      TupleStringIntDouble,
+      TupleIntIntIntInt
       >;
 
 struct Product;
@@ -76,6 +80,14 @@ class Logger {
                 const std::string label,
                 const unsigned int id,
                 const std::string name,
+                const int quantity,
+                const double quantity2
+                );
+        void log(
+                const Client client,
+                const std::string label,
+                const unsigned int id,
+                const std::string name,
                 const double measure
                 );
         void log(
@@ -92,6 +104,15 @@ class Logger {
                 const double value1,
                 const double value2,
                 const int value3
+                );
+        void log(
+                const Client client,
+                const std::string label,
+                const unsigned int id,
+                const unsigned int id2,
+                const int id3,
+                const int value,
+                const int value2
                 );
         void log(
             const Client client,
@@ -129,7 +150,7 @@ class Logger {
                 if (client >= ERROR) {
                     throw std::invalid_argument("Logging client does not exist");
                 }
-                unsigned int time_step = Sim::get_current_time_step();
+                int time_step = Sim::get_current_time_step();
                 std::cout <<
                     "{\"t\":" << time_step << "," <<
                     "\"client\":\"" << clients[client] << "\"," <<
