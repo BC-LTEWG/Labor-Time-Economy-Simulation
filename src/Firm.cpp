@@ -114,34 +114,32 @@ void Firm::finalize_transfer(Person * worker) {
 }
 
 Producer * Firm::send_order(Order * order) {
-    Producer * chosen_producer = select_fastest_supplier_for_order(order);
-    if (chosen_producer) {
-        chosen_producer->pursue_order(order);
-        product_to_outbound_orders[order->product].insert(order);
-        log_reorder(order->product, order->quantity);
-        log_accepted_order(order->product, order->requested_turnaround_time);
-    }
-    return chosen_producer;
-}
-
-Producer * Firm::select_fastest_supplier_for_order(Order * order) {
-    int order_time = INT_MAX;
+    double order_rate = 0.0;
     Producer * chosen_producer = nullptr;
+    Order * chosen_return_order = nullptr;
 
     for (Producer * producer : suppliers) {
         if (!producer->can_produce(order->product)) continue;
-        int draft_plan_time = producer->draft_plan_or_reject(order);
-        if (draft_plan_time == DRAFT_ORDER_REJECTED) {
-            producer->drop_order(order);
-        } else if (draft_plan_time < order_time) {
+        Order * return_order = producer->draft_plan_and_return_order(order);
+        double return_order_rate = static_cast<double>(return_order->quantity) /
+            return_order->requested_turnaround_time;
+        if (return_order->status != Order::ORDER_REJECTED &&
+                return_order_rate > order_rate) {
             if (chosen_producer) {
-                chosen_producer->drop_order(order);
+                chosen_producer->drop_order(this);
             }
-            order_time = draft_plan_time;
+            order_rate = return_order_rate;
             chosen_producer = producer;
+            chosen_return_order = return_order;
         } else {
-            producer->drop_order(order);
+            producer->drop_order(this);
         }
+    }
+    if (chosen_producer) {
+        chosen_producer->pursue_order(this);
+        product_to_outbound_orders[order->product].insert(chosen_return_order);
+        log_reorder(order->product, chosen_return_order->quantity);
+        log_accepted_order(order->product, chosen_return_order->requested_turnaround_time);
     }
     return chosen_producer;
 }
@@ -170,40 +168,15 @@ void Firm::check_and_reorder_input(Product * product) {
     int pending_inventory = get_pending_input_inventory(product);
     log_pending_inventory(product, pending_inventory);
     if (pending_inventory >= threshold || !threshold) return;
-    Order * order = compute_best_reorder(product, threshold, pending_inventory);
+    Order * order = new Order(
+            product,
+            threshold * FIRM_REORDER_MAX_PROP,
+            this,
+            FIRM_STOCKPILE_DURATION * pending_inventory * FIRM_REORDER_MAX_PROP / threshold
+            );
     if (!send_order(order)) {
         log_reorder_failure(product, order->quantity);
     }
-}
-
-Order * Firm::compute_best_reorder(
-        Product * product, 
-        double threshold,
-        int pending_inventory
-        ) {
-    double max_self_reorder_quantity = threshold * FIRM_REORDER_MAX_PROP;
-    double max_producer_reorder_quantity = 0;
-    for (Producer * producer : suppliers) {
-        if (!producer->can_produce(product)) continue;
-        max_producer_reorder_quantity = std::max(
-                max_producer_reorder_quantity,
-                static_cast<double>(producer->get_max_order_quantity(product))
-                );
-    }
-    double reorder_quantity = std::min(
-            max_self_reorder_quantity,
-            max_producer_reorder_quantity
-            );
-    double reorder_deadline = 
-        pending_inventory *
-        FIRM_STOCKPILE_DURATION / threshold * 
-        reorder_quantity / threshold;
-    return new Order(
-            product,
-            std::ceil(reorder_quantity),
-            this,
-            std::max(1.0, reorder_deadline)
-            );
 }
 
 int Firm::predict_workers_needed(Plan * plan) {

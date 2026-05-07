@@ -40,7 +40,7 @@ struct Plan {
 };
 
 struct Order {
-    enum OrderStatus { ORDER_REQUESTED, ORDER_IN_PROGRESS, ORDER_FINISHED };
+    enum OrderStatus { ORDER_REQUESTED, ORDER_REJECTED, ORDER_IN_PROGRESS, ORDER_FINISHED };
     Product * product;
     int quantity;
     Firm * customer;
@@ -100,18 +100,12 @@ class Firm : public Agent {
     std::vector<Plan *> plans_in_progress;
 
     Producer * send_order(Order * order);
-    Producer * select_fastest_supplier_for_order(Order * order);
     bool remove_input_from_inventory(Product * product, int quantity);
     void add_input_inventory(Product * product, int quantity);
     double get_reorder_threshold(Product * product);
     int get_pending_input_inventory(Product * product);
     void check_and_reorder_inputs();
     void check_and_reorder_input(Product * product);
-    Order * compute_best_reorder(
-        Product * product, 
-        double threshold,
-        int pending_inventory
-    );
 
 	int predict_workers_needed(Plan * plan);
     void assign_workers(
