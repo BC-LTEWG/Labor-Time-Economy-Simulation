@@ -212,13 +212,18 @@ void Producer::move_plans_forward_one_step() {
         if (plan->order->status == Order::ORDER_REQUESTED) {
 			start_plan(plan);
 		}
-        if (plan->order->status == Order::ORDER_IN_PROGRESS &&
-			is_within_work_schedule()) {
-			move_plan_forward_one_step(plan);
-		}
-		if (plan->quantity_remaining <= 0) {
-			end_plan(plan);
-        } else {
+        if (plan->order->status == Order::ORDER_IN_PROGRESS) {
+            if (is_within_work_schedule()) {
+                move_plan_forward_one_step(plan);
+            }
+            if (plan->quantity_remaining <= 0) {
+                end_plan(plan);
+                ended_plans_count++;
+            }
+        }
+    }
+    for (Plan * plan : plans_in_progress) {
+        if (plan->order->status != Order::ORDER_FINISHED) {
             plans_still_in_progress.push_back(plan);
         }
     }
