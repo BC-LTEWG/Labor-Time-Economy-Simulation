@@ -58,33 +58,40 @@ bool Producer::can_produce(Product * product) {
     return catalog.count(product);
 }
 
-bool Producer::has_sufficient_inputs_for_order(const Order * order) {
-    for (std::pair<Product * const, double>& input : order->product->inputs_per_unit) {
-        if (input_inventory[input.first] < input.second * order->quantity) {
-            return false;
-        }
+int Producer::get_max_order_quantity(Product * product) {
+    int max_order_quantity = INT_MAX;
+    for (std::pair<Product * const, double>& input : product->inputs_per_unit) {
+        int input_max_order_quantity = static_cast<int>(
+                input_inventory[input.first] / input.second
+                );
+        max_order_quantity = std::min(max_order_quantity, input_max_order_quantity);
     }
-    return true;
+    return max_order_quantity;
 }
 
-int Producer::draft_plan_or_reject(Order * order) {
-    if (!has_sufficient_inputs_for_order(order)) {
-        return DRAFT_ORDER_REJECTED;
-    }
-	Plan * draft_plan = draft_plan_with_required_abilities(order,
+Order * Producer::draft_plan_and_return_order(const Order * order) {
+    int return_order_quantity = std::min(order->quantity, get_max_order_quantity(order->product));
+    Order * return_order = new Order(
+            order->product,
+            return_order_quantity,
+            order->customer,
+            std::max(1.0, static_cast<double>(order->requested_turnaround_time)
+            * return_order_quantity / order->quantity)
+            );
+	Plan * draft_plan = draft_plan_with_required_abilities(return_order,
             order->product->required_abilities);
     if (draft_plan->workers.empty()) {
-        delete draft_plan;
-        return DRAFT_ORDER_REJECTED;
+        return_order->status = Order::ORDER_REJECTED;
     }
-	order_to_draft_plan[order] = draft_plan;
+    return_order->requested_turnaround_time = draft_plan->predicted_turnaround_time;
+	customer_to_draft_plan[order->customer] = draft_plan;
     log_draft_plan(draft_plan);
-	return draft_plan->predicted_turnaround_time;
+	return return_order;
 }
 
-void Producer::drop_order(Order * order) {
-    log_dropped_order(order);
-	order_to_draft_plan.erase(order);
+void Producer::drop_order(Firm * customer) {
+    log_dropped_order(customer_to_draft_plan[customer]->order);
+    customer_to_draft_plan[customer] = nullptr;
 }
 
 void Producer::add_order_input_demand_signals(const Order * order) {
@@ -93,36 +100,38 @@ void Producer::add_order_input_demand_signals(const Order * order) {
     }
 }
 
-bool Producer::pursue_order(Order * order) {
-	if (!order_to_draft_plan.count(order)) {
-		return false;
+void Producer::pursue_order(Firm * customer) {
+	Plan * draft_plan = customer_to_draft_plan[customer];
+	if (!draft_plan) {
+        std::cerr << "Error: pursuing order from firm with no approved draft plan" << std::endl;
 	}
-	Plan * draft_plan = order_to_draft_plan[order];
+    Order * order = draft_plan->order;
     add_order_input_demand_signals(order);
     for (Person * worker : draft_plan->workers) {
         move_worker_off_standby(worker);
     }
 
 	// move draft_plan to plans_in_progress
-	order_to_draft_plan[order] = nullptr;
+	customer_to_draft_plan[customer] = nullptr;
 	plans_in_progress.push_back(draft_plan);
     log_pursued_plan(draft_plan);
     society->log_total_employment();
-	return true;
+    // accounting
+    plans_in_progress.back()->prd +=
+        order->product->price_per_unit * order->quantity;
 }
+
 
 void Producer::start_plan(Plan * plan) {
 	// simplification: consume all raw materials at start of plan
 	for (std::pair<Product * const, double>& input :
             plan->order->product->inputs_per_unit) {
-        int required_input = static_cast<int>(
-            std::ceil(input.second * plan->order->quantity)
-            );
+        int required_input = std::ceil(input.second * plan->order->quantity);
         remove_input_from_inventory(input.first, required_input);
         check_and_reorder_input(input.first);
 	}
     pooled_input_value_account += plan->raw_materials;
-    plan->raw_materials = 0;
+    plan->raw_materials_remaining = 0;
     plan->order->status = Order::ORDER_IN_PROGRESS;
 }
 
@@ -193,22 +202,26 @@ bool Producer::is_within_work_schedule() const {
 }
 
 void Producer::move_plans_forward_one_step() {
-	for (
-            int i = static_cast<int>(plans_in_progress.size()) - 1;
-            i >= 0; i--) {
-		Plan * plan = plans_in_progress[i];
+    std::vector<Plan *> plans_still_in_progress;
+    for (Plan * plan : plans_in_progress) {
         if (plan->order->status == Order::ORDER_REQUESTED) {
 			start_plan(plan);
 		}
-        if (plan->order->status == Order::ORDER_IN_PROGRESS &&
-			is_within_work_schedule()) {
-			move_plan_forward_one_step(plan);
-		}
-		if (plan->quantity_remaining <= 0) {
-			end_plan(plan);
-			plans_in_progress.erase(plans_in_progress.begin() + i);
-		}
+        if (plan->order->status == Order::ORDER_IN_PROGRESS) {
+            if (is_within_work_schedule()) {
+                move_plan_forward_one_step(plan);
+            }
+            if (plan->quantity_remaining <= 0) {
+                end_plan(plan);
+            }
+        }
     }
+    for (Plan * plan : plans_in_progress) {
+        if (plan->order->status != Order::ORDER_FINISHED) {
+            plans_still_in_progress.push_back(plan);
+        }
+    }
+    plans_in_progress = plans_still_in_progress;
 }
 
 std::unordered_set<Product *> Producer::get_products_to_reorder() {
@@ -272,7 +285,7 @@ void Producer::log_ended_plan(const Plan * plan) {
             "ended_plan",
             id,
             plan->order->product->product_name,
-            plan->order->quantity,
-            plan->order->quantity - plan->quantity_remaining
+            plan->order->quantity - plan->quantity_remaining,
+            plan->order->quantity 
             );
 }

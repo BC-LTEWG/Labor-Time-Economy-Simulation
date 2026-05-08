@@ -114,48 +114,34 @@ void Firm::finalize_transfer(Person * worker) {
 }
 
 Producer * Firm::send_order(Order * order) {
-    Producer * chosen_producer = select_fastest_supplier_for_order(order);
-    if (chosen_producer) {
-        pursue_order_with_chosen_producer(order, chosen_producer);
-    }
-    return chosen_producer;
-}
-
-Producer * Firm::select_fastest_supplier_for_order(Order * order) {
-    int order_time = INT_MAX;
+    double order_rate = 0.0;
     Producer * chosen_producer = nullptr;
+    Order * chosen_return_order = nullptr;
 
-    std::vector<Producer *> primary_producers;
     for (Producer * producer : suppliers) {
-        if (producer->can_produce(order->product)) {
-            primary_producers.push_back(producer);
+        if (!producer->can_produce(order->product)) continue;
+        Order * return_order = producer->draft_plan_and_return_order(order);
+        double return_order_rate = static_cast<double>(return_order->quantity) /
+            return_order->requested_turnaround_time;
+        if (return_order->status != Order::ORDER_REJECTED &&
+                return_order_rate > order_rate) {
+            if (chosen_producer) {
+                chosen_producer->drop_order(this);
+            }
+            order_rate = return_order_rate;
+            chosen_producer = producer;
+            chosen_return_order = return_order;
+        } else {
+            producer->drop_order(this);
         }
     }
-    for (Producer * producer : primary_producers) {
-        int draft_plan_time = producer->draft_plan_or_reject(order);
-        if (draft_plan_time == DRAFT_ORDER_REJECTED) {
-            producer->drop_order(order);
-        } else if (draft_plan_time < order_time) {
-            if (chosen_producer) {
-                chosen_producer->drop_order(order);
-            }
-            order_time = draft_plan_time;
-            chosen_producer = producer;
-        } else {
-            producer->drop_order(order);
-        }
+    if (chosen_producer) {
+        chosen_producer->pursue_order(this);
+        product_to_outbound_orders[order->product].insert(chosen_return_order);
+        log_reorder(order->product, chosen_return_order->quantity);
+        log_accepted_order(order->product, chosen_return_order->requested_turnaround_time);
     }
     return chosen_producer;
-}
-
-void Firm::pursue_order_with_chosen_producer(
-        Order * order,
-        Producer * chosen_producer
-        ) {
-    chosen_producer->pursue_order(order);
-    chosen_producer->plans_in_progress.back()->prd +=
-        order->product->price_per_unit * order->quantity;
-    product_to_outbound_orders[order->product].insert(order);
 }
 
 double Firm::get_reorder_threshold(Product * product) {
@@ -170,37 +156,6 @@ int Firm::get_pending_input_inventory(Product * product) {
     return pending_inventory;
 }
 
-void Firm::reorder_input_product_to_threshold(
-        Product * product,
-        double threshold,
-        int pending_inventory
-        ) {
-    double reorder_quantity = threshold;
-    double reorder_deadline = 
-        pending_inventory *
-        FIRM_STOCKPILE_DURATION /
-        threshold ;
-    Order * order = new Order(
-            product,
-            reorder_quantity,
-            this,
-            reorder_deadline
-            );
-    if (!reorder_quantity) return;
-    for (int i = FIRM_REORDER_ATTEMPTS; i > 0; i--) {
-        double reorder_prop = FIRM_REORDER_START * i / FIRM_REORDER_ATTEMPTS;
-        order->quantity = std::ceil(reorder_quantity * reorder_prop);
-        order->requested_turnaround_time = std::max(1.0, reorder_deadline * reorder_prop);
-        Producer * chosen_producer = send_order(order);
-        if (chosen_producer) {
-            log_reorder(product, reorder_quantity);
-            log_accepted_order(product, order->requested_turnaround_time);
-            return;
-        }
-    }
-    log_reorder_failure(product, reorder_quantity);
-}
-
 void Firm::check_and_reorder_inputs() {
     for (std::pair<Product *, int> stockpile : input_inventory) {
         check_and_reorder_input(stockpile.first);
@@ -212,8 +167,15 @@ void Firm::check_and_reorder_input(Product * product) {
     log_demand(product, threshold);
     int pending_inventory = get_pending_input_inventory(product);
     log_pending_inventory(product, pending_inventory);
-    if (pending_inventory < threshold) {
-        reorder_input_product_to_threshold(product, threshold, pending_inventory);
+    if (pending_inventory >= threshold || !threshold) return;
+    Order * order = new Order(
+            product,
+            threshold * FIRM_REORDER_MAX_PROP,
+            this,
+            FIRM_STOCKPILE_DURATION * pending_inventory * FIRM_REORDER_MAX_PROP / threshold
+            );
+    if (!send_order(order)) {
+        log_reorder_failure(product, order->quantity);
     }
 }
 
@@ -224,8 +186,7 @@ int Firm::predict_workers_needed(Plan * plan) {
             WEEK /
             Sim::get_work_days_weekly() / 
             plan->local_work_hours_daily /
-            plan->order->requested_turnaround_time / 
-            DEADLINE_SAFETY_MULT
+            plan->order->requested_turnaround_time
             );
 }
 
@@ -283,11 +244,10 @@ int Firm::predict_labor_hours(Order * order, std::vector<Person *>& workers) {
 }
 
 int Firm::calculate_raw_material_cost_for_order(Order * order) {
-    int raw_material_cost = 0;
+    double raw_material_cost = 0;
     for (std::pair<Product * const, double>& input : order->product->inputs_per_unit) {
-        raw_material_cost += input.first->price_per_unit *
-            input.second *
-            order->quantity;
+        raw_material_cost += std::ceil(input.second * order->quantity) *
+            input.first->price_per_unit;
     }
     return raw_material_cost;
 }
@@ -295,7 +255,7 @@ int Firm::calculate_raw_material_cost_for_order(Order * order) {
 void Firm::initialize_plan_budget(
         Plan * draft_plan
         ) {
-    int raw_material_cost = calculate_raw_material_cost_for_order(draft_plan->order);
+    double raw_material_cost = calculate_raw_material_cost_for_order(draft_plan->order);
     draft_plan->raw_materials =
         draft_plan->raw_materials_remaining = raw_material_cost;
     draft_plan->total_hours =

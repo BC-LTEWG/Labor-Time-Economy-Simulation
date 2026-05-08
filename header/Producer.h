@@ -23,14 +23,14 @@ class Producer : public Firm {
     Logger::Client get_client_type() override;
     void on_time_step() override;
     bool can_produce(Product * product);
-	int draft_plan_or_reject(Order * order);
-	void drop_order(Order * order);
-	bool pursue_order(Order * order);
+	Order * draft_plan_and_return_order(const Order * order);
+	void drop_order(Firm * customer);
+	void pursue_order(Firm * customer);
     double get_input_products_account();
 
   private:
-    std::unordered_map<Order *, Plan *> order_to_draft_plan;
-    bool has_sufficient_inputs_for_order(const Order * order);
+    std::unordered_map<Firm *, Plan *> customer_to_draft_plan;
+    int get_max_order_quantity(Product * product);
     void add_order_input_demand_signals(const Order * order);
     double calculate_quantity_produced_from_worker_suitability(Plan * plan);
     void apply_plan_progress_after_work_step(

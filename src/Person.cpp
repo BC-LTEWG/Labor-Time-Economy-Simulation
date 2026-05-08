@@ -109,15 +109,27 @@ void Person::purchase_good(Product * product, int quantity) {
 }
 
 void Person::consume() {
-    int time = Sim::get_current_time_step();
     for (Product * product : society->get_goods()) {
-        int period = product->mean_consumption_period;
-        if (time % period == 0) {
-            inventory[product] -= 1;
-            log_consumption(product, 1);
+        to_consume[product] += product->mean_consumption_frequency;
+        int consumed = static_cast<int>(to_consume[product]);
+        if (consumed) {
+            inventory[product] -= consumed;
+            log_consumption(product, consumed);
         }
+        to_consume[product] -= (int) to_consume[product];
     }
 }
+
+// void Person::consume() {
+//     int time = Sim::get_current_time_step();
+//     for (Product * product : society->get_goods()) {
+//         int period = product->mean_consumption_period;
+//         if (time % period == 0) {
+//             inventory[product] -= 1;
+//             log_consumption(product, 1);
+//         }
+//     }
+// }
 
 bool Person::will_shop() {
     double total_deficit = 0.0;
