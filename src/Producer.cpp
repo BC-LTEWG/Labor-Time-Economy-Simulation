@@ -285,7 +285,7 @@ void Producer::log_ended_plan(const Plan * plan) {
             "ended_plan",
             id,
             plan->order->product->product_name,
-            plan->order->quantity,
+            plan->order->quantity - plan->quantity_remaining,
             plan->order->quantity 
             );
 }

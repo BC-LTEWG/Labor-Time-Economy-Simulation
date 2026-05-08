@@ -59,7 +59,7 @@ void Firm::add_supplier(Producer * producer) {
 
 void Firm::receive_shipment(Plan * plan) {
     Order * order = plan->order;
-    input_inventory[order->product] += order->quantity;
+    input_inventory[order->product] += order->quantity - plan->quantity_remaining;
     product_to_outbound_orders[order->product].erase(order);
     int transaction_amount = order->product->price_per_unit * order->quantity;
     pooled_input_value_account -= transaction_amount;

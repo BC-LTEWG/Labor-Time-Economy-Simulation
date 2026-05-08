@@ -71,10 +71,11 @@ void Society::on_time_step() {
     for (Firm * firm : firms) {
         firm->on_time_step();
     }
-    if (Sim::get_current_time_step() >= WORK_HOURS_UPDATE_START &&
-            Sim::get_current_time_step() % WORK_HOURS_UPDATE_PERIOD == 0) {
-        update_work_hours_daily();
-    }
+    // It's too early to be trying to do this, we need to put more thought into it first.
+    // if (Sim::get_current_time_step() >= WORK_HOURS_UPDATE_START &&
+    //         Sim::get_current_time_step() % WORK_HOURS_UPDATE_PERIOD == 0) {
+    //     update_work_hours_daily();
+    // }
 }
 
 void Society::set_initial_products() {
