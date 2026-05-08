@@ -126,14 +126,12 @@ void Producer::start_plan(Plan * plan) {
 	// simplification: consume all raw materials at start of plan
 	for (std::pair<Product * const, double>& input :
             plan->order->product->inputs_per_unit) {
-        int required_input = static_cast<int>(
-            std::ceil(input.second * plan->order->quantity)
-            );
+        int required_input = std::ceil(input.second * plan->order->quantity);
         remove_input_from_inventory(input.first, required_input);
         check_and_reorder_input(input.first);
 	}
     pooled_input_value_account += plan->raw_materials;
-    plan->raw_materials = 0;
+    plan->raw_materials_remaining = 0;
     plan->order->status = Order::ORDER_IN_PROGRESS;
 }
 

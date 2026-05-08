@@ -244,11 +244,10 @@ int Firm::predict_labor_hours(Order * order, std::vector<Person *>& workers) {
 }
 
 int Firm::calculate_raw_material_cost_for_order(Order * order) {
-    int raw_material_cost = 0;
+    double raw_material_cost = 0;
     for (std::pair<Product * const, double>& input : order->product->inputs_per_unit) {
-        raw_material_cost += input.first->price_per_unit *
-            input.second *
-            order->quantity;
+        raw_material_cost += std::ceil(input.second * order->quantity) *
+            input.first->price_per_unit;
     }
     return raw_material_cost;
 }
@@ -256,7 +255,7 @@ int Firm::calculate_raw_material_cost_for_order(Order * order) {
 void Firm::initialize_plan_budget(
         Plan * draft_plan
         ) {
-    int raw_material_cost = calculate_raw_material_cost_for_order(draft_plan->order);
+    double raw_material_cost = calculate_raw_material_cost_for_order(draft_plan->order);
     draft_plan->raw_materials =
         draft_plan->raw_materials_remaining = raw_material_cost;
     draft_plan->total_hours =
