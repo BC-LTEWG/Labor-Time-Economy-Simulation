@@ -26,13 +26,13 @@ struct Plan {
     unsigned int local_work_hours_daily;
 
 	// dependent/output fields	
-	int predicted_turnaround_time;
+	double predicted_turnaround_time;
     double machinery_cost;
-    int labor_hours;
+    double labor_hours;
     double raw_materials;
     double total_hours;
     double prd;
-    int labor_hours_remaining;
+    double labor_hours_remaining;
     double raw_materials_remaining;
     double total_hours_remaining;
     double quantity_remaining;
@@ -44,19 +44,19 @@ struct Order {
     Product * product;
     int quantity;
     Firm * customer;
-    int requested_turnaround_time;
+    double requested_turnaround_time;
     OrderStatus status;
     
     Order(
             Product * product,
             int quantity,
             Firm * customer,
-            int requested_turnaround_time
+            double requested_turnaround_time
     );
 };
 
 struct DemandSignal {
-    int quantity;
+    double quantity;
     int timestep;
 };
 
@@ -70,16 +70,16 @@ class Firm : public Agent {
     virtual Logger::Client get_client_type() = 0;
     virtual void on_time_step() override;
     double get_avg_productivity();
-    virtual int get_inventory(Product * product);
+    virtual double get_inventory(Product * product);
     void add_supplier(Producer * producer);
     void receive_shipment(Order * order);
     void receive_shipment(Plan * plan);
-    void receive_payment(Plan * plan, int transaction_amount);
+    void receive_payment(Plan * plan, double transaction_amount);
     double get_busyness();
     std::vector<Person *> propose_transfer(int workers_wanted);
     void finalize_transfer(Person * worker);
 
-    void log_input_inventory(Firm * firm, std::string product_name, int quantity);
+    void log_input_inventory(Firm * firm, std::string product_name, double quantity);
 
   protected:
     Society * society;
@@ -90,20 +90,20 @@ class Firm : public Agent {
         standby_workers;
 	
     std::vector<Producer *> suppliers;
-    std::unordered_map<Product *, int> input_inventory;
+    std::unordered_map<Product *, double> input_inventory;
     std::unordered_set<Product *> catalog;
     
     std::unordered_map<Product *, std::queue<DemandSignal>> demand_signals;
-    std::unordered_map<Product *, int> total_demands;
+    std::unordered_map<Product *, double> total_demands;
     std::unordered_map<Product *, std::unordered_set<Order *>> product_to_outbound_orders;
     std::unordered_map<Product *, double> recorded_living_labor_per_unit;
     std::vector<Plan *> plans_in_progress;
 
     Producer * send_order(Order * order);
-    bool remove_input_from_inventory(Product * product, int quantity);
-    void add_input_inventory(Product * product, int quantity);
+    bool remove_input_from_inventory(Product * product, double quantity);
+    void add_input_inventory(Product * product, double quantity);
     double get_reorder_threshold(Product * product);
-    int get_pending_input_inventory(Product * product);
+    double get_pending_input_inventory(Product * product);
     void check_and_reorder_inputs();
     void check_and_reorder_input(Product * product);
 
@@ -112,24 +112,24 @@ class Firm : public Agent {
         Plan * draft_plan,
         std::vector<Person::Ability>& required_abilities
     );
-	int predict_turnaround_time(Plan * plan, std::vector<Person*>& workers); 
-	int predict_labor_hours(Order * order, std::vector<Person*>& workers);
-    int calculate_raw_material_cost_for_order(Order * order);
+	double predict_turnaround_time(Plan * plan, std::vector<Person*>& workers); 
+	double predict_labor_hours(Order * order, std::vector<Person*>& workers);
+    double calculate_raw_material_cost_for_order(Order * order);
     void initialize_plan_budget(
         Plan * draft_plan
     );
     double calculate_machinery_cost_for_plan(Plan * draft_plan);
 	void assign_plan_dependent_fields(Plan * draft_plan, std::vector<Person::Ability>& required_abilities);
-    void add_demand_signal(Product * product, int quantity);
+    void add_demand_signal(Product * product, double quantity);
     Plan * draft_plan_with_required_abilities(Order * order, std::vector<Person::Ability>& required_abilities); 
     void apply_demand_window();
     double get_demand(Product * product);
     virtual std::unordered_set<Product *> get_products_to_reorder() = 0;
     void move_worker_off_standby(Person * worker);
 
-    void log_shipment_received(const Product * product, const int quantity);
-    void log_inventory_level(const Product * product, const int quantity);
-    void log_inventory_reduction(const Product * product, const int quantity);
+    void log_shipment_received(const Product * product, const double quantity);
+    void log_inventory_level(const Product * product, const double quantity);
+    void log_inventory_reduction(const Product * product, const double quantity);
     void log_reorder(const Product * product, int quantity);
     void log_initial_employment(const int worker_id, const int firm_id);
     void log_busyness(double firm_busyness, double societal_busyness, int max_workers_for_transfer);
@@ -139,7 +139,7 @@ class Firm : public Agent {
     void log_product_quantity(
             const char * const label,
             const Product * product,
-            const int quantity
+            const double quantity
             );
     void log_accepted_order(const Product * product, int requested_turnover_time);
     // void log_accepted_order(std::string product_name, int requested_turnaround_time);

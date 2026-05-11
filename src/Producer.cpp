@@ -75,7 +75,7 @@ Order * Producer::draft_plan_and_return_order(const Order * order) {
             order->product,
             return_order_quantity,
             order->customer,
-            std::max(1.0, static_cast<double>(order->requested_turnaround_time)
+            std::max(1.0, order->requested_turnaround_time
             * return_order_quantity / order->quantity)
             );
 	Plan * draft_plan = draft_plan_with_required_abilities(return_order,
@@ -126,7 +126,7 @@ void Producer::start_plan(Plan * plan) {
 	// simplification: consume all raw materials at start of plan
 	for (std::pair<Product * const, double>& input :
             plan->order->product->inputs_per_unit) {
-        int required_input = std::ceil(input.second * plan->order->quantity);
+        double required_input = input.second * plan->order->quantity;
         remove_input_from_inventory(input.first, required_input);
         check_and_reorder_input(input.first);
 	}
@@ -136,8 +136,8 @@ void Producer::start_plan(Plan * plan) {
 }
 
 void Producer::move_plan_forward_one_step(Plan * plan) {
-	int labor_hours_done = plan->workers.size();
-    double quantity_produced = calculate_quantity_produced_from_worker_suitability(plan);
+    double ideal_quantity_produced = calculate_quantity_produced_from_worker_suitability(plan);
+    double quantity_produced = std::min(ideal_quantity_produced, plan->quantity_remaining);
     if (quantity_produced <= 0.0) {
         return;
     }
@@ -148,15 +148,12 @@ void Producer::move_plan_forward_one_step(Plan * plan) {
         plan->order->quantity;
 
 	//pay workers
+    double labor_hours_per_worker = quantity_produced / ideal_quantity_produced;
 	for (Person * worker : plan->workers) {
-		worker->register_hours_worked(1);
-        worker->register_busyness();
+		worker->register_hours_worked(labor_hours_per_worker);
 	}
-    plan->labor_hours_remaining -= labor_hours_done;
-    plan->raw_materials_remaining = std::max(
-            0.0,
-            plan->raw_materials_remaining - raw_materials_used
-            );
+    plan->labor_hours_remaining -= labor_hours_per_worker * plan->workers.size();
+    plan->raw_materials_remaining -= raw_materials_used;
     plan->total_hours_remaining =
         plan->labor_hours_remaining + plan->raw_materials_remaining;
     plan->quantity_remaining -= quantity_produced;
@@ -173,7 +170,7 @@ void Producer::end_plan(Plan * plan) {
 	input_inventory[plan->order->product] -= plan->order->quantity;
     plan->order->customer->receive_shipment(plan);
     recorded_living_labor_per_unit[plan->order->product] = 
-        (double) (plan->labor_hours - plan->labor_hours_remaining) 
+        (plan->labor_hours - plan->labor_hours_remaining) 
         / (plan->order->quantity - plan->quantity_remaining); 
     PriceController::get_instance()->update_price(plan);
     for (Person * worker : plan->workers) {
@@ -285,7 +282,7 @@ void Producer::log_ended_plan(const Plan * plan) {
             "ended_plan",
             id,
             plan->order->product->product_name,
-            plan->order->quantity - plan->quantity_remaining,
+            plan->order->quantity,
             plan->order->quantity 
             );
 }
