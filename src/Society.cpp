@@ -228,7 +228,6 @@ void Society::set_product_prices_production_consumption() {
     consumption_scalar = PRODUCT_CONSUMPTION_MULT * initial_work_week / WEEK / consumption_scalar;
     for (Product *product : products) {
         product->mean_consumption_frequency *= consumption_scalar;
-        std::cerr << "mean consumption frequency for product " << product << " = " << product->mean_consumption_frequency << std::endl;
     }
     for (Product *product : products) {
         product->mean_consumption_period = static_cast<int>(std::ceil(1 / product->mean_consumption_frequency));
