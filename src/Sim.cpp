@@ -14,7 +14,7 @@ void Sim::run(SimArgs& args) {
 }
 
 Sim::Sim() :
-    gen{1}
+    gen{rd()}
 {}
 
 unsigned int Sim::get_num_people() {
@@ -59,15 +59,10 @@ bool Sim::does_json() {
 
 void Sim::set_params(SimArgs& args) {
     this->args = args;
-
-    /*
+    
     if(this->args.fixed_seed) {
         this->gen.seed(this->args.seed);
-    } else {
-        std::random_device rd;
-        this->gen.seed(rd());
     }
-    */
 }
 
 std::random_device& Sim::get_random_device() {
@@ -84,8 +79,15 @@ int Sim::get_current_time_step() {
 
 void Sim::run() {
     society = Society::get_instance();
+
     for (std::size_t i = 0; i < args.time_steps; ++i) {
+        // This line updates your terminal in real-time without cluttering the output file
+        std::cerr << "\r[DEBUG] Executing Step: " << i << " / " << args.time_steps << std::flush;
+        
         society->on_time_step();
         ++current_time_step;
     }
+
+    // This ensures your terminal prompt looks normal after the simulation ends
+    std::cerr << std::endl << "[DONE] Simulation finished." << std::endl;
 }

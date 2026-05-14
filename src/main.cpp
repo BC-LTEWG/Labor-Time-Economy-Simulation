@@ -14,6 +14,7 @@ void print_usage() {
     std::cout << "\t-m N: Set the initial number of products per machine to N." << std::endl;
     std::cout << "\t-r N: Set the initial number of producers to N." << std::endl;
     std::cout << "\t-d N: Set the initial number of distributors to N." << std::endl;
+    std::cout << "\t-e N: Set the random seed to N." << std::endl;
     std::cout << "\t-s N: Set the annual chance of an agent getting sick." << std::endl;
     std::cout << "\t-j: Write JSON log traces to stdout." << std::endl;
 }
@@ -41,10 +42,13 @@ void set_params(int argc, const char ** argv, SimArgs& args) {
            arg == "-o" || arg == "--products" || 
            arg == "-m" || arg == "--products-per-machine" || 
            arg == "-r" || arg == "--producers" || 
-           arg == "-d" || arg == "--distributors") {
+           arg == "-d" || arg == "--distributors" ||
+           arg == "-e" || arg == "--seed") {
 
             long negative_check = strtol(argv[++i], NULL, 10);
-            if(negative_check <= 0) error = true;
+
+            bool seed_exception = (arg == "-e" || arg == "--seed");
+            if(negative_check < 0 || (negative_check == 0 && !seed_exception)) error = true; //prevents "0" seed from sending error
             else {
                 value =
                     static_cast<unsigned int>(negative_check);
@@ -56,6 +60,10 @@ void set_params(int argc, const char ** argv, SimArgs& args) {
                     else if (arg == "-m" || arg == "--products-per-machine") args.products_per_machine = value;
                     else if (arg == "-r" || arg == "--producers") args.num_producers = value;
                     else if (arg == "-d" || arg == "--distributors") args.num_distributors = value;
+                    else if (seed_exception) {
+                        args.seed = value;
+                        args.fixed_seed = true;
+                    }
                 }
         }
         else if(arg == "-s" || arg == "--sick-chance") {
