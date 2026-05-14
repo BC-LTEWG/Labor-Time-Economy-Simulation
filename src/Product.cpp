@@ -19,7 +19,6 @@ Product::Product(const std::string& name) :
     static std::uniform_int_distribution<>
         order_size_dist(PRODUCT_ORDER_SIZE_MIN, PRODUCT_ORDER_SIZE_MAX);
     order_size = order_size_dist(Sim::get_random_generator());
-    std::cout << id << " " << order_size << std::endl;
     static std::uniform_real_distribution<>
         living_labor_dist(
                 PRODUCT_LABOR_PER_UNIT_MIN,
