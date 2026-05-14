@@ -33,12 +33,6 @@ class Producer : public Firm {
     int get_max_order_quantity(Product * product);
     void add_order_input_demand_signals(const Order * order);
     double calculate_quantity_produced_from_worker_suitability(Plan * plan);
-    void apply_plan_progress_after_work_step(
-        Plan * plan,
-        int labor_hours_done,
-        double raw_materials_used,
-        double quantity_produced
-    );
     bool is_within_work_schedule() const;
 
 	void start_plan(Plan * plan);
@@ -51,5 +45,4 @@ class Producer : public Firm {
     void log_dropped_order(const Order * order);
     void log_pursued_plan(const Plan * draft_plan);
     void log_ended_plan(const Plan * plan);
-    void log_pending_input_inventory_level(Product * product);
 };

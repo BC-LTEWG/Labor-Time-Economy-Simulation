@@ -18,7 +18,7 @@ Order::Order(
         Product * product,
         int quantity,
         Firm * customer,
-        int requested_turnaround_time
+        double requested_turnaround_time
         )
     : product(product),
       quantity(quantity),
@@ -49,7 +49,7 @@ void Firm::on_time_step() {
     apply_demand_window();
 }
 
-int Firm::get_inventory(Product * product) {
+double Firm::get_inventory_level(Product * product) {
     return input_inventory.count(product) ? input_inventory[product] : 0;
 }
 
@@ -59,20 +59,20 @@ void Firm::add_supplier(Producer * producer) {
 
 void Firm::receive_shipment(Plan * plan) {
     Order * order = plan->order;
-    input_inventory[order->product] += order->quantity - plan->quantity_remaining;
+    input_inventory[order->product] += order->quantity;
     product_to_outbound_orders[order->product].erase(order);
-    int transaction_amount = order->product->price_per_unit * order->quantity;
+    double transaction_amount = order->product->price_per_unit * order->quantity;
     pooled_input_value_account -= transaction_amount;
     plan->firm->receive_payment(plan, transaction_amount);
     log_shipment_received(order->product, order->quantity);
     log_inventory_level(order->product, input_inventory[order->product]);
 }
 
-void Firm::receive_payment(Plan * plan, int transaction_amount) {
+void Firm::receive_payment(Plan * plan, double transaction_amount) {
     plan->prd += transaction_amount;
 }
 
-bool Firm::remove_input_from_inventory(Product * product, int quantity) {
+bool Firm::remove_input_from_inventory(Product * product, double quantity) {
     if (input_inventory[product] < quantity) {
         return false;
     }
@@ -148,8 +148,8 @@ double Firm::get_reorder_threshold(Product * product) {
     return get_demand(product) * FIRM_STOCKPILE_DURATION;
 }
 
-int Firm::get_pending_input_inventory(Product * product) {
-    int pending_inventory = input_inventory[product];
+double Firm::get_pending_inventory_level(Product * product) {
+    double pending_inventory = input_inventory[product];
     for (Order * order : product_to_outbound_orders[product]) {
         pending_inventory += order->quantity;
     }
@@ -157,7 +157,7 @@ int Firm::get_pending_input_inventory(Product * product) {
 }
 
 void Firm::check_and_reorder_inputs() {
-    for (std::pair<Product *, int> stockpile : input_inventory) {
+    for (std::pair<Product *, double> stockpile : input_inventory) {
         check_and_reorder_input(stockpile.first);
     }
 }
@@ -165,7 +165,7 @@ void Firm::check_and_reorder_inputs() {
 void Firm::check_and_reorder_input(Product * product) {
     double threshold = get_reorder_threshold(product);
     log_demand(product, threshold);
-    int pending_inventory = get_pending_input_inventory(product);
+    int pending_inventory = get_pending_inventory_level(product);
     log_pending_inventory(product, pending_inventory);
     if (pending_inventory >= threshold || !threshold) return;
     Order * order = new Order(
@@ -224,29 +224,25 @@ void Firm::assign_workers(
     }
 }
 
-int Firm::predict_turnaround_time(Plan * plan, std::vector<Person *>& workers) {
-    return std::ceil(
-            plan->order->quantity *
-            recorded_living_labor_per_unit[plan->order->product] *
-            WEEK /
-            Sim::get_work_days_weekly() / 
-            plan->local_work_hours_daily /
-            workers.size()
-            );
+double Firm::predict_turnaround_time(Plan * plan, std::vector<Person *>& workers) {
+    return plan->order->quantity *
+           recorded_living_labor_per_unit[plan->order->product] *
+           WEEK /
+           Sim::get_work_days_weekly() / 
+           plan->local_work_hours_daily /
+           workers.size();
 }
 
-int Firm::predict_labor_hours(Order * order, std::vector<Person *>& workers) {
-    return std::ceil(
-            order->quantity *
-            recorded_living_labor_per_unit[order->product] / 
-            workers.size()
-            );
+double Firm::predict_labor_hours(Order * order, std::vector<Person *>& workers) {
+    return order->quantity *
+           recorded_living_labor_per_unit[order->product] / 
+           workers.size();
 }
 
-int Firm::calculate_raw_material_cost_for_order(Order * order) {
+double Firm::calculate_raw_material_cost_for_order(Order * order) {
     double raw_material_cost = 0;
     for (std::pair<Product * const, double>& input : order->product->inputs_per_unit) {
-        raw_material_cost += std::ceil(input.second * order->quantity) *
+        raw_material_cost += input.second * order->quantity *
             input.first->price_per_unit;
     }
     return raw_material_cost;
@@ -307,7 +303,7 @@ Plan * Firm::draft_plan_with_required_abilities(
     return draft_plan;
 }
 
-void Firm::add_demand_signal(Product * product, int quantity) {
+void Firm::add_demand_signal(Product * product, double quantity) {
     demand_signals[product].push({quantity, Sim::get_current_time_step()});
     total_demands[product] += quantity;
 }
@@ -332,7 +328,7 @@ double Firm::get_demand(Product * product) {
     }
     int window_length = std::max(FIRM_DEMAND_WINDOW_MIN, 
         Sim::get_current_time_step() - window_start);
-    return (double) total_demands[product] / window_length;
+    return total_demands[product] / window_length;
 }
 
 void Firm::move_worker_off_standby(Person * worker) {
@@ -350,15 +346,15 @@ void Firm::move_worker_off_standby(Person * worker) {
     workers.insert(worker);
 }
 
-void Firm::log_shipment_received(const Product * product, const int quantity) {
+void Firm::log_shipment_received(const Product * product, const double quantity) {
     log_product_quantity("shipment_received", product, quantity);
 }
 
-void Firm::log_inventory_level(const Product * product, const int quantity) {
+void Firm::log_inventory_level(const Product * product, const double quantity) {
     log_product_quantity("inventory_level", product, quantity);
 }
 
-void Firm::log_inventory_reduction(const Product * product, const int quantity) {
+void Firm::log_inventory_reduction(const Product * product, const double quantity) {
     log_product_quantity("inventory_reduction", product, quantity);
 }
 
@@ -411,7 +407,7 @@ void Firm::log_reorder_failure(const Product * product, const int quantity) {
 void Firm::log_product_quantity(
         const char * const label,
         const Product * product,
-        const int quantity
+        const double quantity
         ) {
     Logger::get_instance()->log<int>(
             get_client_type(),
@@ -454,7 +450,7 @@ void Firm::log_pending_inventory(const Product * product, double pending_invento
             );
 }
 
-void Firm::log_input_inventory(Firm * firm, std::string product_name, int quantity) {
+void Firm::log_input_inventory(Firm * firm, std::string product_name, double quantity) {
     Logger::get_instance()->log(
             get_client_type(),
             "input_inventory",
