@@ -67,7 +67,7 @@ int Distributor::try_sell_goods(Product& product, int quantity, Person * person)
     add_demand_signal(&product, quantity);
     check_and_reorder_input(&product);
     if (!catalog.count(&product)) return 0;
-    int available = std::min(static_cast<int>(get_inventory(&product)), quantity);
+    int available = std::min(static_cast<int>(get_inventory_level(&product)), quantity);
     if (available < quantity) {
         log_shortfall(product.product_name, quantity - available);
     }

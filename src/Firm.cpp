@@ -49,7 +49,7 @@ void Firm::on_time_step() {
     apply_demand_window();
 }
 
-double Firm::get_inventory(Product * product) {
+double Firm::get_inventory_level(Product * product) {
     return input_inventory.count(product) ? input_inventory[product] : 0;
 }
 
@@ -148,7 +148,7 @@ double Firm::get_reorder_threshold(Product * product) {
     return get_demand(product) * FIRM_STOCKPILE_DURATION;
 }
 
-double Firm::get_pending_input_inventory(Product * product) {
+double Firm::get_pending_inventory_level(Product * product) {
     double pending_inventory = input_inventory[product];
     for (Order * order : product_to_outbound_orders[product]) {
         pending_inventory += order->quantity;
@@ -165,7 +165,7 @@ void Firm::check_and_reorder_inputs() {
 void Firm::check_and_reorder_input(Product * product) {
     double threshold = get_reorder_threshold(product);
     log_demand(product, threshold);
-    int pending_inventory = get_pending_input_inventory(product);
+    int pending_inventory = get_pending_inventory_level(product);
     log_pending_inventory(product, pending_inventory);
     if (pending_inventory >= threshold || !threshold) return;
     Order * order = new Order(

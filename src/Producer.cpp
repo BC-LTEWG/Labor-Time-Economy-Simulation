@@ -208,7 +208,7 @@ void Producer::move_plans_forward_one_step() {
             if (is_within_work_schedule()) {
                 move_plan_forward_one_step(plan);
             }
-            if (plan->quantity_remaining <= 0) {
+            if (plan->quantity_remaining <= 0.0) {
                 end_plan(plan);
             }
         }
