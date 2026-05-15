@@ -25,7 +25,6 @@ class Person : public Agent {
     float productivity();
     double suitability(std::vector<Ability>& required_abilities);
     void register_hours_worked(double hours_worked);
-    void register_busyness();
     bool charge(double cost);
     void purchase_good(Product * p, int quantity);
     void set_firm(Firm *);
@@ -41,7 +40,7 @@ class Person : public Agent {
     std::unordered_map<Product *, double> to_consume;
     Firm * firm = nullptr;
     double account;
-    bool busy_this_time_step = false;
+    double busyness_this_time_step = 0.0;
     double busyness = 0.0;
  	std::vector<Distributor *> ranked_distributors;
     static const char * ability_names[];
