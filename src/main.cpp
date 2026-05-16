@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include <map>
+#include <unordered_map>
 
 #include "Sim.h"
 
@@ -35,7 +35,7 @@ enum class argType {
 void set_params(int argc, const char ** argv, SimArgs& args) {
     bool error = false;
 
-    static const std::map<std::string, argType> valid_args = {
+    static const std::unordered_map<std::string, argType> valid_args = {
         {"-n", argType::TimeSteps}, {"--time-steps", argType::TimeSteps},
         {"-p", argType::People}, {"--people", argType::People},
         {"-h", argType::WorkHours}, {"--work-hours", argType::WorkHours},
