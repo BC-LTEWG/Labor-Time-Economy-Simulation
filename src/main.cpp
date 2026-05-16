@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
+#include <map>
 
 #include "Sim.h"
 
@@ -19,8 +20,34 @@ void print_usage() {
     std::cout << "\t-j: Write JSON log traces to stdout." << std::endl;
 }
 
+enum class argType {
+    TimeSteps,
+    People,
+    WorkHours,
+    WorkDays,
+    Products,
+    ProductsPerMachine,
+    Producers,
+    Distributors,
+    Seed
+};
+
 void set_params(int argc, const char ** argv, SimArgs& args) {
     bool error = false;
+
+    static const std::map<std::string, argType> valid_args = {
+        {"-n", argType::TimeSteps}, {"--time-steps", argType::TimeSteps},
+        {"-p", argType::People}, {"--people", argType::People},
+        {"-h", argType::WorkHours}, {"--work-hours", argType::WorkHours},
+        {"-w", argType::WorkDays}, {"--work-days", argType::WorkDays},
+        {"-o", argType::Products}, {"--products", argType::Products},
+        {"-m", argType::ProductsPerMachine}, {"--products-per-machine", argType::ProductsPerMachine},
+        {"-r", argType::Producers}, {"--producers", argType::Producers},
+        {"-d", argType::Distributors}, {"--distributors", argType::Distributors},
+        {"-e", argType::Seed}, {"--seed", argType::Seed},
+    };
+
+
     for (int i = 1; i < argc; ++i) {
         unsigned int value = 0;
         double dvalue = 0.0;
@@ -35,36 +62,55 @@ void set_params(int argc, const char ** argv, SimArgs& args) {
             break;
         }
         
-        if(arg == "-n" || arg == "--time-steps" ||
-           arg == "-p" || arg == "--people" || 
-           arg == "-h" || arg == "--work-hours" || 
-           arg == "-w" || arg == "--work-days" || 
-           arg == "-o" || arg == "--products" || 
-           arg == "-m" || arg == "--products-per-machine" || 
-           arg == "-r" || arg == "--producers" || 
-           arg == "-d" || arg == "--distributors" ||
-           arg == "-e" || arg == "--seed") {
-
+        if(valid_args.count(arg)) {
             long negative_check = strtol(argv[++i], NULL, 10);
-
             bool seed_exception = (arg == "-e" || arg == "--seed");
-            if(negative_check < 0 || (negative_check == 0 && !seed_exception)) error = true; //prevents "0" seed from sending error
+            if(negative_check < 0 || (negative_check == 0 && !seed_exception)) {
+                error = true;
+            }
             else {
-                value =
-                    static_cast<unsigned int>(negative_check);
-                    if (arg == "-n" || arg == "--time-steps") args.time_steps = value;
-                    else if (arg == "-p" || arg == "--people") args.num_people = value;
-                    else if (arg == "-h" || arg == "--work-hours") args.work_hours_daily = value;
-                    else if (arg == "-w" || arg == "--work-days") args.work_days_weekly = value;
-                    else if (arg == "-o" || arg == "--products") args.num_products = value;
-                    else if (arg == "-m" || arg == "--products-per-machine") args.products_per_machine = value;
-                    else if (arg == "-r" || arg == "--producers") args.num_producers = value;
-                    else if (arg == "-d" || arg == "--distributors") args.num_distributors = value;
-                    else if (seed_exception) {
+                value = static_cast<unsigned int>(negative_check);
+
+                switch(valid_args.at(arg)) {
+                    case argType::TimeSteps: {
+                        args.time_steps = value;
+                        break;
+                    }
+                    case argType::People: {
+                        args.num_people = value;
+                        break;
+                    }
+                    case argType::WorkHours: {
+                        args.work_hours_daily = value;
+                        break;
+                    }
+                    case argType::WorkDays: {
+                        args.work_days_weekly = value;
+                        break;
+                    }
+                    case argType::Products: {
+                        args.num_products = value;
+                        break;
+                    }
+                    case argType::ProductsPerMachine: {
+                        args.products_per_machine = value;
+                        break;
+                    }
+                    case argType::Producers: {
+                        args.num_producers = value;
+                        break;
+                    }
+                    case argType::Distributors: {
+                        args.num_distributors = value;
+                        break;
+                    }
+                    case argType::Seed: {
                         args.seed = value;
                         args.fixed_seed = true;
+                        break;
                     }
                 }
+            }
         }
         else if(arg == "-s" || arg == "--sick-chance") {
             dvalue = strtod(argv[++i], NULL);
