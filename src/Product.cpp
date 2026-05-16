@@ -11,10 +11,11 @@
 
 struct Machine;
 
-Product::Product(int id, const std::string& name) :
-    id{id}, product_name{name},
+Product::Product(const std::string& name) :
     product_type{TYPE_GOOD}
 {
+    static unsigned int unique_id = 0;
+    id = unique_id++;
     static std::uniform_int_distribution<>
         order_size_dist(PRODUCT_ORDER_SIZE_MIN, PRODUCT_ORDER_SIZE_MAX);
     order_size = order_size_dist(Sim::get_random_generator());

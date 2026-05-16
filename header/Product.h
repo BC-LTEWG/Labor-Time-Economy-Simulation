@@ -10,7 +10,7 @@ struct Machine;
 
 struct Product {
     enum ProductType { TYPE_GOOD, TYPE_MACHINE, TYPE_CONSUMER_GOOD, TYPE_UNKNOWN };
-    Product(int id, const std::string& name);
+    Product(const std::string& name);
     void set_inputs(std::vector<Product *>& products);
     void set_machines(std::vector<Machine*> machines);
     void log_mean_consumption_frequency();

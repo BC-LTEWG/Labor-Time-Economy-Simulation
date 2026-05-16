@@ -20,7 +20,7 @@
 #include "Society.h"
 
 Society * Society::get_instance() {
-    static Society *instance = new Society;
+    static Society * instance = new Society;
     return instance;
 }
 
@@ -28,8 +28,7 @@ Society::Society() :
     current_work_hours_daily{Sim::get_work_hours_daily()},
     current_work_days_weekly{Sim::get_work_days_weekly()}
 {
-    static unsigned int unique_id = 0;
-    id = unique_id++;
+    id = 0;
     set_initial_products();
     for (Product * product : products) {
         Logger::get_instance()->log(Logger::SOCIETY, "price", product->id, product->price_per_unit);
@@ -82,9 +81,7 @@ void Society::set_initial_products() {
     unsigned int starting_num_products = Sim::get_num_products();
     std::size_t i = 0;
     for (; i < starting_num_products; ++i) {
-        Product *new_product = new Product(
-            i,
-            "Product_" + std::to_string(i));
+        Product * new_product = new Product( "Product_" + std::to_string(i));
         goods.push_back(new_product);
         products.push_back(new_product);
         product_to_index[new_product] = i;
@@ -94,7 +91,7 @@ void Society::set_initial_products() {
     const unsigned int starting_num_machines =
         starting_num_products / Sim::get_products_per_machine();
     for (std::size_t j = 0; j < starting_num_machines; ++j, ++i) {
-        Machine *new_machine = new Machine(
+        Machine * new_machine = new Machine(
             i,
             "Machine_" + std::to_string(i),
             machine_lifetime_dist(Sim::get_random_generator()));

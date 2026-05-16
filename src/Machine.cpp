@@ -3,7 +3,7 @@
 #include "Machine.h"
 
 Machine::Machine(int id, const std::string& name, int lifetime) :
-    Product{id, name},
+    Product{name},
     lifetime{lifetime}
 {
     product_type = Product::ProductType::TYPE_MACHINE;

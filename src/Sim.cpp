@@ -59,6 +59,10 @@ bool Sim::does_json() {
 
 void Sim::set_params(SimArgs& args) {
     this->args = args;
+    
+    if(this->args.fixed_seed) {
+        this->gen.seed(this->args.seed);
+    }
 }
 
 std::random_device& Sim::get_random_device() {
