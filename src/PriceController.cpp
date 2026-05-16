@@ -24,19 +24,17 @@ void PriceController::update_price(Plan * plan) {
         plan_history[product].erase(plan_history[product].begin());
     }
     plan_history[product].push_back(std::make_pair(plan, now));
-    double units = 0.0;
+    int units = 0.0;
     double hours = 0.0;
     int workers = 0;
     for (std::pair<Plan *, int> entry : plan_history[product]) {
         Plan * plan = entry.first;
         units += plan->order->quantity - plan->quantity_remaining;
         hours += plan->labor_hours - plan->labor_hours_remaining;
+        hours += plan->raw_materials - plan->raw_materials_remaining;
         workers += plan->workers.size();
     }
     double price = product->societal_living_labor_per_unit = hours / units;
-    for (std::pair<Product *, double> input : product->inputs_per_unit) {
-        price += input.first->price_per_unit * input.second;
-    }
     double machine_use_hours = hours / workers;
     double machine_hours_per_unit = machine_use_hours / units;
     for (Machine * machine : product->machines_needed) {

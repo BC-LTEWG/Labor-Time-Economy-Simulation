@@ -67,10 +67,7 @@ void Person::train(std::unordered_map<Person::Ability, double> target_abilities)
 void Person::register_hours_worked(double hours_worked) {
     log_hours(hours_worked);
     account += hours_worked;
-}
-
-void Person::register_busyness() {
-    busy_this_time_step = true;
+    busyness_this_time_step += hours_worked;
 }
 
 bool Person::charge(double cost) {
@@ -109,15 +106,27 @@ void Person::purchase_good(Product * product, int quantity) {
 }
 
 void Person::consume() {
-    int time = Sim::get_current_time_step();
     for (Product * product : society->get_goods()) {
-        int period = product->mean_consumption_period;
-        if (time % period == 0) {
-            inventory[product] -= 1;
-            log_consumption(product, 1);
+        to_consume[product] += product->mean_consumption_frequency;
+        int consumed = static_cast<int>(to_consume[product]);
+        if (consumed) {
+            inventory[product] -= consumed;
+            log_consumption(product, consumed);
         }
+        to_consume[product] -= (int) to_consume[product];
     }
 }
+
+// void Person::consume() {
+//     int time = Sim::get_current_time_step();
+//     for (Product * product : society->get_goods()) {
+//         int period = product->mean_consumption_period;
+//         if (time % period == 0) {
+//             inventory[product] -= 1;
+//             log_consumption(product, 1);
+//         }
+//     }
+// }
 
 bool Person::will_shop() {
     double total_deficit = 0.0;
@@ -193,8 +202,8 @@ void Person::update_health_status() {
 
 void Person::update_busyness() {
     double duration_prop = 1.0 / BUSYNESS_AVERAGING_WINDOW;
-    busyness = busyness * (1 - duration_prop) + busy_this_time_step * duration_prop;
-    busy_this_time_step = false;
+    busyness = busyness * (1 - duration_prop) + busyness_this_time_step * duration_prop;
+    busyness_this_time_step = 0.0;
 }
 
 void Person::on_time_step() {
