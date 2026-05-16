@@ -129,6 +129,7 @@ void Person::consume() {
 // }
 
 bool Person::will_shop() {
+    if (busyness_this_time_step) return false;
     double total_deficit = 0.0;
     for (Product * product : society->get_goods()) {
         total_deficit += std::max(0.0, 
@@ -209,9 +210,10 @@ void Person::update_busyness() {
 void Person::on_time_step() {
 	++age;
     consume();
-	if (will_shop()) { shop(); }
 	if (will_retire()) { retire(); }
 	update_health_status();
+
+	if (will_shop()) { shop(); }
     update_busyness();
 }
 

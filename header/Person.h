@@ -4,6 +4,7 @@
 #include <vector>
 #include "Agent.h"
 
+struct Plan;
 struct Product;
 class Distributor;
 class Firm;

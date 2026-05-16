@@ -31,6 +31,7 @@ Society::Society() :
     static unsigned int unique_id = 0;
     id = unique_id++;
     set_initial_products();
+    add_consumer_goods();
     for (Product * product : products) {
         Logger::get_instance()->log(Logger::SOCIETY, "price", product->id, product->price_per_unit);
         Logger::get_instance()->log(Logger::SOCIETY, "order_size", product->id, product->order_size);
@@ -109,6 +110,12 @@ void Society::set_initial_products() {
     set_product_prices_production_consumption();
     log_consumption_frequencies();
     log_consumption_periods();
+}
+
+void Society::add_consumer_goods() {
+    for (Product * good : goods) {
+        consumer_goods[good] = new ConsumerGood(good);
+    }
 }
 
 void Society::populate_io_matrix_and_labor_vector(
@@ -256,12 +263,6 @@ ConsumerGood * Society::get_consumer_good(Product *product) {
     }
     else {
         return NULL;
-    }
-}
-
-void Society::add_consumer_good(Product *product) {
-    if (!consumer_goods.count(product)) {
-        consumer_goods[product] = new ConsumerGood(product);
     }
 }
 

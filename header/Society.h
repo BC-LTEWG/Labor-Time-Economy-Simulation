@@ -23,7 +23,6 @@ class Society : public Agent {
         std::vector<Product *>& get_goods();
         std::vector<Product *>& get_products();
         ConsumerGood * get_consumer_good(Product * product);
-        void add_consumer_good(Product * product);
         std::vector<Distributor *>& get_distributors();
         std::unordered_set<Person *>& get_unemployed_people();
         void retire_person(Person * person);
@@ -41,6 +40,7 @@ class Society : public Agent {
         unsigned int id;
         Person * birth_person();
         void set_initial_products();
+        void add_consumer_goods();
         void set_product_prices_production_consumption();
         std::unordered_map<Product *, std::size_t> get_product_to_index_map();
         void populate_io_matrix_and_labor_vector(

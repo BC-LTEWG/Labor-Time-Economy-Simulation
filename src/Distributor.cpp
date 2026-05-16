@@ -20,7 +20,6 @@ Distributor::Distributor(
     Firm(society, initial_catalog)
 {
     for (Product * product : get_products_to_reorder()) {
-        society->add_consumer_good(product);
         int quantity =
             product->mean_consumption_frequency *
             (FIRM_STOCKPILE_DURATION + FIRM_DEMAND_WINDOW_MIN) * 

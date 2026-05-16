@@ -4,11 +4,13 @@
 #include <numeric>
 
 #include "Constants.h"
+#include "ConsumerGood.h"
 #include "Distributor.h"
 #include "Firm.h"
 #include "Logger.h"
 #include "Machine.h"
 #include "Person.h"
+#include "PriceController.h"
 #include "Producer.h"
 #include "Product.h"
 #include "Sim.h"
@@ -47,6 +49,10 @@ unsigned int Firm::get_id() {
 
 void Firm::on_time_step() {
     apply_demand_window();
+	move_plans_forward_one_step();
+    if (plans_in_progress.size()) {
+        log_plans();
+    }
 }
 
 double Firm::get_inventory_level(Product * product) {
@@ -62,7 +68,7 @@ void Firm::receive_shipment(Plan * plan) {
     input_inventory[order->product] += order->quantity;
     product_to_outbound_orders[order->product].erase(order);
     double transaction_amount = order->product->price_per_unit * order->quantity;
-    pooled_input_value_account -= transaction_amount;
+    pooled_input_value -= transaction_amount;
     plan->firm->receive_payment(plan, transaction_amount);
     log_shipment_received(order->product, order->quantity);
     log_inventory_level(order->product, input_inventory[order->product]);
@@ -88,6 +94,10 @@ double Firm::get_busyness() {
         busyness += worker->get_busyness();
     }
     return workers.size() > 0 ? busyness / workers.size() : 0.0;
+}
+
+double Firm::get_pooled_input_value() {
+    return pooled_input_value;
 }
 
 std::vector<Person *> Firm::propose_transfer(int workers_wanted) {
@@ -149,7 +159,9 @@ double Firm::get_reorder_threshold(Product * product) {
 }
 
 double Firm::get_pending_inventory_level(Product * product) {
-    double pending_inventory = input_inventory[product];
+    double pending_inventory = get_inventory_level(product) + 
+        get_inventory_level(static_cast<Product *>(
+                    Society::get_instance()->get_consumer_good(product)));
     for (Order * order : product_to_outbound_orders[product]) {
         pending_inventory += order->quantity;
     }
@@ -177,6 +189,102 @@ void Firm::check_and_reorder_input(Product * product) {
     if (!send_order(order)) {
         log_reorder_failure(product, order->quantity);
     }
+}
+
+void Firm::start_plan(Plan * plan) {
+	for (std::pair<Product * const, double>& input :
+            plan->order->product->inputs_per_unit) {
+        double required_input = input.second * plan->order->quantity;
+        remove_input_from_inventory(input.first, required_input);
+        check_and_reorder_input(input.first);
+	}
+    pooled_input_value += plan->raw_materials;
+    plan->raw_materials_remaining = 0;
+    plan->order->status = Order::ORDER_IN_PROGRESS;
+}
+
+void Firm::move_plan_forward_one_step(Plan * plan) {
+    double ideal_quantity_produced = calculate_quantity_produced_from_worker_suitability(plan);
+    double quantity_produced = std::min(ideal_quantity_produced, plan->quantity_remaining);
+    if (quantity_produced <= 0.0) {
+        return;
+    }
+
+    double raw_materials_used =
+        plan->raw_materials_remaining *
+        quantity_produced /
+        plan->order->quantity;
+	//pay workers
+    double labor_hours_per_worker = quantity_produced / ideal_quantity_produced;
+	for (Person * worker : plan->workers) {
+		worker->register_hours_worked(labor_hours_per_worker);
+	}
+    plan->labor_hours_remaining -= labor_hours_per_worker * plan->workers.size();
+    plan->raw_materials_remaining -= raw_materials_used;
+    plan->total_hours_remaining =
+        plan->labor_hours_remaining + plan->raw_materials_remaining;
+    plan->quantity_remaining -= quantity_produced;
+}
+
+void Firm::end_plan(Plan * plan) {
+    log_ended_plan(plan);
+    plan->order->status = Order::ORDER_FINISHED;
+    plan->order->customer->receive_shipment(plan);
+    recorded_living_labor_per_unit[plan->order->product] = 
+        (plan->labor_hours - plan->labor_hours_remaining) 
+        / (plan->order->quantity - plan->quantity_remaining); 
+    PriceController::get_instance()->update_price(plan);
+    for (Person * worker : plan->workers) {
+        standby_workers.insert(worker);
+    }
+}
+
+void Firm::move_plans_forward_one_step() {
+    std::vector<Plan *> plans_still_in_progress;
+    for (Plan * plan : plans_in_progress) {
+        if (plan->order->status == Order::ORDER_REQUESTED) {
+			start_plan(plan);
+		}
+        if (plan->order->status == Order::ORDER_IN_PROGRESS) {
+            if (is_within_work_schedule()) {
+                move_plan_forward_one_step(plan);
+            }
+            if (plan->quantity_remaining <= 0.0) {
+                end_plan(plan);
+            }
+        }
+    }
+    for (Plan * plan : plans_in_progress) {
+        if (plan->order->status != Order::ORDER_FINISHED) {
+            plans_still_in_progress.push_back(plan);
+        }
+    }
+    plans_in_progress = plans_still_in_progress;
+}
+
+void Firm::add_order_input_demand_signals(const Order * order) {
+    for (std::pair<Product * const, double>& input : order->product->inputs_per_unit) {
+        add_demand_signal(input.first, input.second * order->quantity);
+    }
+}
+
+double Firm::calculate_quantity_produced_from_worker_suitability(Plan * plan) {
+    double total_worker_suitability = 0.0;
+    for (Person * worker : plan->workers) {
+        total_worker_suitability +=
+            worker->suitability(plan->order->product->required_abilities);
+    }
+    if (total_worker_suitability <= 0.0) {
+        return 0.0;
+    }
+    return total_worker_suitability / plan->order->product->living_labor_per_unit;
+}
+
+bool Firm::is_within_work_schedule() const {
+    return Sim::get_current_time_step() % DAY <
+        Society::get_instance()->get_current_work_hours_daily() &&
+        Sim::get_current_time_step() / DAY % 7 <
+        Society::get_instance()->get_current_work_days_weekly();
 }
 
 int Firm::predict_workers_needed(Plan * plan) {
@@ -344,6 +452,41 @@ void Firm::move_worker_off_standby(Person * worker) {
     }
     worker->set_firm(this);
     workers.insert(worker);
+}
+
+void Firm::log_plans() {
+    for (Plan * plan : plans_in_progress) {
+        Logger::get_instance()->log(
+                Logger::FIRM,
+                "plan_quantity_remaining",
+                id,
+                plan->order->product->product_name,
+                plan->quantity_remaining
+                );
+    }
+}
+
+void Firm::log_pursued_plan(const Plan * draft_plan) {
+    Logger::get_instance()->log(
+            Logger::FIRM,
+            "pursued_plan",
+            id,
+            draft_plan->order->customer->get_id(),
+            draft_plan->order->product->id,
+            draft_plan->order->quantity,
+            draft_plan->workers.size()
+            );
+}
+
+void Firm::log_ended_plan(const Plan * plan) {
+    Logger::get_instance()->log(
+            Logger::FIRM,
+            "ended_plan",
+            id,
+            plan->order->product->product_name,
+            plan->order->quantity,
+            plan->order->quantity 
+            );
 }
 
 void Firm::log_shipment_received(const Product * product, const double quantity) {
