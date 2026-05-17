@@ -10,5 +10,6 @@ ConsumerGood::ConsumerGood(Product * product) :
     price_per_unit = product->price_per_unit + DISTRIBUTION_LABOR_PER_UNIT;
     mean_consumption_frequency = product->mean_consumption_frequency;
     inputs_per_unit[product] = 1.0;
+    required_abilities = { DISTRIBUTION_ABILITY };
 }
 

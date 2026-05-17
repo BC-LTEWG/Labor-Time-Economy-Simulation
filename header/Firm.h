@@ -110,14 +110,13 @@ class Firm : public Agent {
 	void move_plan_forward_one_step(Plan * plan);
 	void end_plan(Plan * plan);
 	void move_plans_forward_one_step();
-    void add_order_input_demand_signals(const Order * order);
     double calculate_quantity_produced_from_worker_suitability(Plan * plan);
     bool is_within_work_schedule() const;
 
 	int predict_workers_needed(Plan * plan);
     void assign_workers(
         Plan * draft_plan,
-        std::vector<Person::Ability>& required_abilities
+        std::vector<int>& required_abilities
     );
 	double predict_turnaround_time(Plan * plan, std::vector<Person*>& workers); 
 	double predict_labor_hours(Order * order, std::vector<Person*>& workers);
@@ -126,9 +125,11 @@ class Firm : public Agent {
         Plan * draft_plan
     );
     double calculate_machinery_cost_for_plan(Plan * draft_plan);
-	void assign_plan_dependent_fields(Plan * draft_plan, std::vector<Person::Ability>& required_abilities);
+	void assign_plan_dependent_fields(Plan * draft_plan,
+            std::vector<int>& required_abilities);
     void add_demand_signal(Product * product, double quantity);
-    Plan * draft_plan_with_required_abilities(Order * order, std::vector<Person::Ability>& required_abilities); 
+    Plan * draft_plan_with_required_abilities(Order * order,
+            std::vector<int>& required_abilities); 
     void apply_demand_window();
     double get_demand(Product * product);
     virtual std::unordered_set<Product *> get_products_to_reorder() = 0;

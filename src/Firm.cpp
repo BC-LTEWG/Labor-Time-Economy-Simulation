@@ -41,6 +41,7 @@ Firm::Firm(
     for (Product * product : society->get_products()) {
         recorded_living_labor_per_unit[product] = product->living_labor_per_unit;
     }
+    log_catalog();
 }
 
 unsigned int Firm::get_id() {
@@ -262,12 +263,6 @@ void Firm::move_plans_forward_one_step() {
     plans_in_progress = plans_still_in_progress;
 }
 
-void Firm::add_order_input_demand_signals(const Order * order) {
-    for (std::pair<Product * const, double>& input : order->product->inputs_per_unit) {
-        add_demand_signal(input.first, input.second * order->quantity);
-    }
-}
-
 double Firm::calculate_quantity_produced_from_worker_suitability(Plan * plan) {
     double total_worker_suitability = 0.0;
     for (Person * worker : plan->workers) {
@@ -300,7 +295,7 @@ int Firm::predict_workers_needed(Plan * plan) {
 
 void Firm::assign_workers(
         Plan * draft_plan,
-        std::vector<Person::Ability>& required_abilities
+        std::vector<int>& required_abilities
         ) {
     std::vector<Person *> sorted_standby_workers(standby_workers.begin(),
             standby_workers.end());
@@ -380,7 +375,7 @@ double Firm::calculate_machinery_cost_for_plan(Plan * draft_plan) {
 
 void Firm::assign_plan_dependent_fields(
         Plan * draft_plan,
-        std::vector<Person::Ability>& required_abilities
+        std::vector<int>& required_abilities
         ) {
     draft_plan->predicted_turnaround_time =
         predict_turnaround_time(draft_plan, draft_plan->workers);
@@ -393,7 +388,7 @@ void Firm::assign_plan_dependent_fields(
 
 Plan * Firm::draft_plan_with_required_abilities(
         Order * order,
-        std::vector<Person::Ability>& required_abilities
+        std::vector<int>& required_abilities
         ) {
     Plan * draft_plan = new Plan{};
     draft_plan->order = order;
@@ -613,14 +608,11 @@ void Firm::log_transfer_request() {
 
 void Firm::log_catalog() {
     std::vector<int> product_ids;
-    product_ids.reserve(catalog.size());
-
     for (Product* p : catalog) {
         product_ids.push_back(p->id);
     }
-
     Logger::get_instance()->log(
-        get_client_type(),
+        Logger::FIRM,
         "catalog",
         id,
         product_ids

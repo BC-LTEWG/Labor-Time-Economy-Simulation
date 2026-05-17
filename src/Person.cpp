@@ -24,9 +24,8 @@ Person::Person(Society * society):
 
     std::lognormal_distribution<>
         ability_dist(0.0, Sim::get_person_ability_stddev());
-    std::vector<Person::Ability> varied_abilities;
-    for (int i = 0; i < Person::NUM_ABILITIES; i++) {
-        abilities[(Person::Ability) i] = ability_dist(Sim::get_random_generator());
+    for (int i = 0; i < NUM_ABILITIES; i++) {
+        abilities[i] = ability_dist(Sim::get_random_generator());
     }
     log_abilities();
     ranked_distributors = society->get_distributors();
@@ -48,7 +47,7 @@ unsigned int Person::get_id() {
     return id;
 }
 
-std::unordered_map<Person::Ability, double>& Person::get_abilities() {
+std::unordered_map<int, double>& Person::get_abilities() {
     return this->abilities;
 }
 
@@ -56,7 +55,7 @@ double Person::get_busyness() {
     return busyness;
 }
 
-void Person::train(std::unordered_map<Person::Ability, double> target_abilities) {
+void Person::train(std::unordered_map<int, double>& target_abilities) {
     // can introduce < 100% effectiveness on training later
     for (auto &pair : target_abilities) {
         abilities[pair.first] = pair.second;
@@ -96,7 +95,7 @@ float Person::productivity() {
 void Person::purchase_good(Product * product, int quantity) {
     int purchased = 0;
     for (Distributor * distributor : ranked_distributors) {
-        int available = distributor->try_sell_goods(*product, quantity, this);
+        int available = distributor->try_sell_goods(product, quantity, this);
         quantity -= available;
         inventory[product] += available;
         purchased += available;
@@ -226,17 +225,15 @@ Firm * Person::get_firm() {
     return firm;
 }
 
-double Person::suitability(std::vector<Ability>& required_abilities) {
+double Person::suitability(std::vector<int>& required_abilities) {
     double suitability = 0.0;
-    for (Ability ability : required_abilities) {
+    for (int ability : required_abilities) {
         suitability += abilities[ability];
     }
     suitability /= required_abilities.size();
     suitability *= productivity();
     return suitability;
 }
-
-const char * Person::ability_names[] = { "Ability_1", "Ability_2", "Ability_3" };
 
 const char * Person::health_status_names[] = { "Healthy", "Unhealthy" };
 
@@ -261,7 +258,7 @@ void Person::log_placement() {
 }
 
 void Person::log_abilities() {
-    for (std::pair<Ability, double> ability : abilities) {
+    for (std::pair<int, double> ability : abilities) {
         Logger::get_instance()->log<double>(
                 Logger::PERSON,"ability",
                 id,

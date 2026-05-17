@@ -13,18 +13,17 @@ class Society;
 class Person : public Agent {
   public:
     enum HealthStatus { HEALTHY, UNHEALTHY };
-    enum Ability { ABILITY_1, ABILITY_2, ABILITY_3, NUM_ABILITIES }; 
 	
     Person(Society * society);
     unsigned int get_id() override;
 	void on_time_step() override;
   
-	std::unordered_map<Ability, double>& get_abilities();
+	std::unordered_map<int, double>& get_abilities();
     double get_busyness();
-	void train(std::unordered_map<Ability, double> target_abilities);
+	void train(std::unordered_map<int, double>& target_abilities);
     HealthStatus get_health_status();
     float productivity();
-    double suitability(std::vector<Ability>& required_abilities);
+    double suitability(std::vector<int>& required_abilities);
     void register_hours_worked(double hours_worked);
     bool charge(double cost);
     void purchase_good(Product * p, int quantity);
@@ -34,7 +33,7 @@ class Person : public Agent {
   private:
     Society * society;
     unsigned int id;
-    std::unordered_map<Ability, double> abilities;
+    std::unordered_map<int, double> abilities;
     int age;
     HealthStatus health_status;
     std::unordered_map<Product *, int> inventory;
@@ -44,7 +43,6 @@ class Person : public Agent {
     double busyness_this_time_step = 0.0;
     double busyness = 0.0;
  	std::vector<Distributor *> ranked_distributors;
-    static const char * ability_names[];
     static const char * health_status_names[];
 
     void consume();

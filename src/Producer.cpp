@@ -38,7 +38,6 @@ Producer::Producer(
     for (Product * product : get_products_to_reorder()) {
         log_inventory_level(product, input_inventory[product]);
     } 
-    log_catalog();
 }
 
 Logger::Client Producer::get_client_type() {
@@ -62,6 +61,12 @@ int Producer::get_max_order_quantity(Product * product) {
         max_order_quantity = std::min(max_order_quantity, input_max_order_quantity);
     }
     return max_order_quantity;
+}
+
+void Producer::add_order_input_demand_signals(const Order * order) {
+    for (std::pair<Product * const, double>& input : order->product->inputs_per_unit) {
+        add_demand_signal(input.first, input.second * order->quantity);
+    }
 }
 
 Order * Producer::draft_plan_and_return_order(const Order * order) {

@@ -21,7 +21,7 @@ class Distributor : public Firm {
     );
     Logger::Client get_client_type() override;
     void on_time_step() override;
-    int try_sell_goods(Product& product, int quantity, Person * person);
+    int try_sell_goods(Product * product, int quantity, Person * person);
     
   private:
     std::unordered_set<Product *> get_products_to_reorder() override;
