@@ -8,267 +8,123 @@
 #include "Sim.h"
 #include "sqlite3.h"
 
-Logger * Logger::get_instance() {
-    static Logger * instance = new Logger;
-    return instance;
+LogPair::LogPair(std::string key, double value) :
+    key{key}, value{value}
+{}
+
+std::ostream& operator<<(std::ostream& os, const LogPair& kvp) {
+    os << "{" << kvp.key << ":" << kvp.value << "}";
+    return os;
 }
 
-const char * Logger::clients[] = {"Firm", "Distributor", "Person", "Producer", "Product", "Society"};
+static const char * clients[] = {
+    "Firm",
+    "Distributor",
+    "Person",
+    "Producer",
+    "Product",
+    "Society"
+};
 
-void Logger::log(
-        const Client client,
-        const std::string label,
-        const unsigned int id
-        ) {
-    TupleNone tuple;
-    log_impl(client, label, id, tuple);
-}
-
-void Logger::log(const Client client,
-        const std::string label,
+void log_base(
+        const Logger::Client client,
         const unsigned int id,
-        const int value
+        const std::string& label
         ) {
-    TupleInt tuple = std::make_tuple(value);
-    log_impl(client, label, id, tuple);
-}
-
-void Logger::log(const Client client,
-        const std::string label,
-        const unsigned int id,
-        const double measure
-        ) {
-    TupleDouble tuple = std::make_tuple(measure);
-    log_impl(client, label, id, tuple);
-}
-
-void Logger::log(
-        const Client client,
-        const std::string label,
-        const unsigned int id,
-        const std::string value
-        ) {
-    TupleString tuple = std::make_tuple(value);
-    log_impl(client, label, id, tuple);
-}
-
-void Logger::log(
-        const Client client,
-        const std::string label,
-        const unsigned int id,
-        const std::string name,
-        const int quantity
-        ) {
-    log_impl<int>(client, label, id, name, quantity);
-}
-
-void Logger::log(
-        const Client client,
-        const std::string label,
-        const unsigned int id,
-        const std::string name,
-        const int quantity,
-        const double quantity2
-        ) {
-
-    TupleStringIntDouble tuple = std::make_tuple(name, quantity, quantity2);
-    log_impl(client, label, id, tuple);
-}
-
-void Logger::log(
-    const Client client,
-    const std::string label,
-    const unsigned int id,
-    const std::vector<int>& values
-) {
-    if (!Sim::does_json()) {
-        return;
-    }
-    if (client >= ERROR) {
+    if (client >= Logger::Client::ERROR) {
         throw std::invalid_argument("Logging client does not exist");
     }
 
     int time_step = Sim::get_current_time_step();
 
     std::cout << "{\"t\":" << time_step << ","
-              << "\"client\":\"" << clients[client] << "\","
-              << "\"id\":" << id << ","
-              << "\"label\":\"" << label << "\","
-              << "\"values\":[";
-
-    for (size_t i = 0; i < values.size(); ++i) {
-        if (i > 0) std::cout << ",";
-        std::cout << values[i];
-    }
-
-    std::cout << "]}" << std::endl;
+        << "\"client\":\"" << clients[client] << "\","
+        << "\"id\":" << id << ","
+        << "\"label\":\"" << label << "\",";
 }
 
 void Logger::log(
         const Client client,
-        const std::string label,
         const unsigned int id,
-        const std::string name,
-        const double measure
-        ) {
-    log_impl<double>(client, label, id, name, measure);
-}
-
-void Logger::log(
-        const Client client,
         const std::string label,
-        const unsigned int id,
-        const unsigned int index,
-        const double value
+        const LogPair pair1
         ) {
     if (!Sim::does_json()) {
         return;
     }
-    if (client >= ERROR) {
-        throw std::invalid_argument("Logging client does not exist");
-    }
-    int time_step = Sim::get_current_time_step();
-    std::cout << "{\"t\":" << time_step << "," <<
-        "\"client\":\"" << clients[client] << "\"," <<
-        "\"id\":" << id << "," <<
-        "\"label\":\"" << label << "\"," <<
-        "\"index\":" << index << "," <<
-        "\"value\":" << value << "}" << std::endl;
+    log_base(client, id, label);
+    std::cout << "\"" << pair1.key << "\":" << pair1.value << "}" << std::endl;
 }
 
 void Logger::log(
         const Client client,
-        const std::string label,
         const unsigned int id,
-        const std::pair<int, int> coords,
-        const double value
+        const std::string label,
+        const LogPair pair1,
+        const LogPair pair2
         ) {
     if (!Sim::does_json()) {
         return;
     }
-    if (client >= ERROR) {
-        throw std::invalid_argument("Logging client does not exist");
-    }
-    int time_step = Sim::get_current_time_step();
-    std::cout << "{\"t\":" << time_step << "," <<
-        "\"client\":\"" << clients[client] << "\"," <<
-        "\"id\":" << id << "," <<
-        "\"label\":\"" << label << "\"," <<
-        "\"coords\":[" << coords.first << "," << coords.second << "]," <<
-        "\"value\":" << value << "}" << std::endl;
+    log_base(client, id, label);
+    std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
+    "\"" << pair2.key << "\":" << pair2.value << "}" << std::endl;
 }
 
-void Logger::log_impl(
+void Logger::log(
         const Client client,
-        const std::string label,
         const unsigned int id,
-        const Tuple& values
+        const std::string label,
+        const LogPair pair1,
+        const LogPair pair2,
+        const LogPair pair3
         ) {
     if (!Sim::does_json()) {
         return;
     }
-    int time_step = Sim::get_current_time_step();
-    Logger::json(time_step, client, label, id, values);
+    log_base(client, id, label);
+    std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
+    "\"" << pair2.key << "\":" << pair2.value << "," << 
+    "\"" << pair3.key << "\":" << pair3.value << "}" << std::endl;
 }
 
 void Logger::log(
-    const Client client,
-    const std::string label,
-    const unsigned int id,
-    const int value1,
-    const int value2
-) {
-    TupleIntInt tuple = std::make_tuple(value1, value2);
-    log_impl(client, label, id, tuple);
-}
-
-void Logger::log(
-    const Client client,
-    const std::string label,
-    const unsigned int id,
-    const double value1,
-    const double value2,
-    const int value3
-) {
-    TupleDoubleDoubleInt tuple = std::make_tuple(value1, value2, value3);
-    log_impl(client, label, id, tuple);
-}
-
-void Logger::log(
-    const Client client,
-    const std::string label,
-    const unsigned int id, // producer id
-    const unsigned int id2, // customer id
-    const int id3, // product id
-    const int value, //quantity
-    const int value2 // n_workers
-) {
-    Tuple tuple = std::make_tuple(id2, id3, value, value2);
-    log_impl(client, label, id, tuple);
-}
-
-template <typename T>
-void Logger::log_impl(
         const Client client,
-        const std::string label,
         const unsigned int id,
-        const std::string& key,
-        const T value
+        const std::string label,
+        const LogPair pair1,
+        const LogPair pair2,
+        const LogPair pair3,
+        const LogPair pair4
         ) {
     if (!Sim::does_json()) {
         return;
     }
-    int time_step = Sim::get_current_time_step();
-    Logger::json<T>(time_step, client, label, id, key, value);
+    log_base(client, id, label);
+    std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
+    "\"" << pair2.key << "\":" << pair2.value << "," << 
+    "\"" << pair3.key << "\":" << pair3.value << "," <<
+    "\"" << pair4.key << "\":" << pair4.value << "}" << std::endl;
 }
 
-void Logger::json(
-        const int time_step,
+void Logger::log(
         const Client client,
-        std::string label,
-        unsigned int id,
-        const Tuple& values
+        const unsigned int id,
+        const std::string label,
+        const LogPair pair1,
+        const LogPair pair2,
+        const LogPair pair3,
+        const LogPair pair4,
+        const LogPair pair5
         ) {
-    if (client >= ERROR) {
-        throw std::invalid_argument("Logging client does not exist");
+    if (!Sim::does_json()) {
+        return;
     }
-    std::cout << "{\"t\":" << time_step << "," <<
-        "\"client\":\"" << clients[client] << "\"," <<
-        "\"id\":" << id << "," <<
-        "\"label\":\"" << label << "\"," <<
-        "\"values\":[";
-    auto visitor = [](auto&& arg) {
-        Logger::trace_tuple(arg);
-    };
-    std::visit(visitor, values);
-    std::cout << "]}" << std::endl;
-}
-
-template <typename T>
-void Logger::json(
-        const int time_step,
-        const Client client,
-        std::string label,
-        unsigned int id,
-        const std::string key,
-        const T value
-        ) {
-    if (client >= ERROR) {
-        throw std::invalid_argument("Logging client does not exist");
-    }
-    std::cout << "{\"t\":" << time_step << "," <<
-        "\"client\":\"" << clients[client] << "\"," <<
-        "\"id\":" << id << "," <<
-        "\"label\":\"" << label << "\"," <<
-        "\"" << key << "\":" << value << "}" << std::endl;
-}
-
-template<typename TupleT>
-void Logger::trace_tuple(const TupleT& values) {
-    static int count = 0;
-    std::apply([](auto&& ... arg) {
-            ((std::cout << (count++ ? "," : "") << arg), ...); count++;
-            }, values);
-    count = 0;
+    log_base(client, id, label);
+    std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
+    "\"" << pair2.key << "\":" << pair2.value << "," << 
+    "\"" << pair3.key << "\":" << pair3.value << "," <<
+    "\"" << pair4.key << "\":" << pair4.value << "," <<
+    "\"" << pair5.key << "\":" << pair5.value << "}" << std::endl;
 }
 
