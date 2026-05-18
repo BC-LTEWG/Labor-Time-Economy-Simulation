@@ -65,7 +65,7 @@ void Person::train(std::unordered_map<Person::Ability, double> target_abilities)
 }
 
 void Person::register_hours_worked(double hours_worked) {
-    log_hours(hours_worked);
+    log_hours_worked(hours_worked);
     account += hours_worked;
     busyness_this_time_step += hours_worked;
 }
@@ -101,7 +101,7 @@ void Person::purchase_good(Product * product, int quantity) {
         inventory[product] += available;
         purchased += available;
     }
-    log_purchase(product->product_name, purchased);
+    log_purchase(product, purchased);
     log_account();
 }
 
@@ -238,12 +238,18 @@ const char * Person::ability_names[] = { "Ability_1", "Ability_2", "Ability_3" }
 
 const char * Person::health_status_names[] = { "Healthy", "Unhealthy" };
 
-void Person::log_hours(const double hours) {
-    Logger::get_instance()->log(Logger::PERSON, "hours", id, hours);
+void Person::log_hours_worked(const double hours) {
+    Logger::log(Logger::PERSON, id, "hours_worked", LogPair("hours", hours));
 }
 
-void Person::log_purchase(const std::string& product_name, const int quantity) {
-    Logger::get_instance()->log(Logger::PERSON, "purchase", id, product_name, quantity);
+void Person::log_purchase(const Product * product, const int quantity) {
+    Logger::log(
+            Logger::PERSON,
+            id,
+            "purchase",
+            LogPair("product_id", product->id),
+            LogPair("quantity", quantity)
+            );
 }
 
 void Person::log_shopping_deficit(const double deficit) {

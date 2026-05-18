@@ -26,10 +26,10 @@ static const char * clients[] = {
     "Society"
 };
 
-void log_base(
+void Logger::log(
         const Logger::Client client,
         const unsigned int id,
-        const std::string& label
+        const std::string label
         ) {
     if (client >= Logger::Client::ERROR) {
         throw std::invalid_argument("Logging client does not exist");
@@ -52,7 +52,7 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log_base(client, id, label);
+    log(client, id, label);
     std::cout << "\"" << pair1.key << "\":" << pair1.value << "}" << std::endl;
 }
 
@@ -66,7 +66,7 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log_base(client, id, label);
+    log(client, id, label);
     std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
     "\"" << pair2.key << "\":" << pair2.value << "}" << std::endl;
 }
@@ -82,7 +82,7 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log_base(client, id, label);
+    log(client, id, label);
     std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
     "\"" << pair2.key << "\":" << pair2.value << "," << 
     "\"" << pair3.key << "\":" << pair3.value << "}" << std::endl;
@@ -100,7 +100,7 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log_base(client, id, label);
+    log(client, id, label);
     std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
     "\"" << pair2.key << "\":" << pair2.value << "," << 
     "\"" << pair3.key << "\":" << pair3.value << "," <<
@@ -120,7 +120,7 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log_base(client, id, label);
+    log(client, id, label);
     std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
     "\"" << pair2.key << "\":" << pair2.value << "," << 
     "\"" << pair3.key << "\":" << pair3.value << "," <<

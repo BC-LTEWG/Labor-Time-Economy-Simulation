@@ -34,6 +34,11 @@ class Logger {
         static void log(
                 const Client client,
                 const unsigned int id,
+                const std::string label
+                );
+        static void log(
+                const Client client,
+                const unsigned int id,
                 const std::string label,
                 const LogPair pair1
                 );
