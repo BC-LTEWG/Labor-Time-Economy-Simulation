@@ -253,56 +253,65 @@ void Person::log_purchase(const Product * product, const int quantity) {
 }
 
 void Person::log_shopping_deficit(const double deficit) {
-    Logger::get_instance()->log(Logger::PERSON, "shopping_deficit", id, deficit);
+    Logger::log(Logger::PERSON, id, "shopping_deficit", LogPair("deficit", deficit));
 }
 
 void Person::log_shopping() {
-    Logger::get_instance()->log(Logger::PERSON, "is_shopping", id, account);
+    Logger::log(Logger::PERSON, id, "is_shopping", LogPair("account", account));
 }
 
 void Person::log_placement() {
-    Logger::get_instance()->log(Logger::PERSON, "firm", id, firm ? static_cast<int>(firm->get_id()) : -1);
+    Logger::log(
+            Logger::PERSON,
+            id,
+            "placement",
+            LogPair("firm", firm ? firm->get_id() : -1)
+            );
 }
 
 void Person::log_abilities() {
     for (std::pair<Ability, double> ability : abilities) {
-        Logger::get_instance()->log<double>(
-                Logger::PERSON,"ability",
+        Logger::log(
+                Logger::PERSON,
                 id,
                 "ability",
-                ability.first,
-                "value",
-                ability.second
+                LogPair("ability", ability.first),
+                LogPair("value", ability.second)
                 );
     }
 }
 
 void Person::log_inventory() {
     for (std::pair<Product *, int> entry : inventory) {
-        Logger::get_instance()->log<int>(
+        Logger::log(
                 Logger::PERSON,
-                "inventory",
                 id,
-                "product_id",
-                entry.first->id,
-                "amount",
-                entry.second
+                "inventory",
+                LogPair("product_id", entry.first->id),
+                LogPair("amount", entry.second)
                 );
     }
 }
 
 void Person::log_account() {
-    Logger::get_instance()->log(Logger::PERSON, "account", id, account);
+    Logger::log(Logger::PERSON, id, "account", LogPair("value", account));
 }
 
 void Person::log_health_status() {
-    Logger::get_instance()->log(Logger::PERSON,
-            "health_status",
+    Logger::log(
+            Logger::PERSON,
             id,
-            std::string("\"") + health_status_names[health_status] + "\""
+            "health_status",
+            LogPairS("status", health_status_names[health_status])
             );
 }
 
 void Person::log_consumption(const Product * product, const int quantity) {
-    Logger::get_instance()->log(Logger::PERSON, "consumption", id, product->product_name, quantity);
+    Logger::log(
+            Logger::PERSON,
+            id,
+            "consumption",
+            LogPair("product_id", product->id),
+            LogPair("quantity", quantity)
+            );
 }

@@ -12,8 +12,17 @@ LogPair::LogPair(std::string key, double value) :
     key{key}, value{value}
 {}
 
-std::ostream& operator<<(std::ostream& os, const LogPair& kvp) {
-    os << "{" << kvp.key << ":" << kvp.value << "}";
+LogPairS::LogPairS(std::string key, std::string value) :
+    key{key}, value{value}
+{}
+
+std::ostream& operator<<(std::ostream& os, const LogPair& lp) {
+    os << "{\"" << lp.key << "\":" << lp.value << "}";
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const LogPairS& lp) {
+    os << "{\"" << lp.key << "\":\"" << lp.value << "\"}";
     return os;
 }
 
@@ -26,7 +35,7 @@ static const char * clients[] = {
     "Society"
 };
 
-void Logger::log(
+void log_base(
         const Logger::Client client,
         const unsigned int id,
         const std::string label
@@ -40,7 +49,19 @@ void Logger::log(
     std::cout << "{\"t\":" << time_step << ","
         << "\"client\":\"" << clients[client] << "\","
         << "\"id\":" << id << ","
-        << "\"label\":\"" << label << "\",";
+        << "\"label\":\"" << label << "\"";
+}
+
+void Logger::log(
+        const Logger::Client client,
+        const unsigned int id,
+        const std::string label
+        ) {
+    if (!Sim::does_json()) {
+        return;
+    }
+    log_base(client, id, label);
+    std::cout << "}" << std::endl;
 }
 
 void Logger::log(
@@ -52,8 +73,21 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log(client, id, label);
-    std::cout << "\"" << pair1.key << "\":" << pair1.value << "}" << std::endl;
+    log_base(client, id, label);
+    std::cout << "," << pair1 << std::endl;
+}
+
+void Logger::log(
+        const Client client,
+        const unsigned int id,
+        const std::string label,
+        const LogPairS pair1
+        ) {
+    if (!Sim::does_json()) {
+        return;
+    }
+    log_base(client, id, label);
+    std::cout << "," << pair1 << std::endl;
 }
 
 void Logger::log(
@@ -66,9 +100,8 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log(client, id, label);
-    std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
-    "\"" << pair2.key << "\":" << pair2.value << "}" << std::endl;
+    log_base(client, id, label);
+    std::cout << "," << pair1 << "," << pair2 << std::endl;
 }
 
 void Logger::log(
@@ -82,10 +115,8 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log(client, id, label);
-    std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
-    "\"" << pair2.key << "\":" << pair2.value << "," << 
-    "\"" << pair3.key << "\":" << pair3.value << "}" << std::endl;
+    log_base(client, id, label);
+    std::cout << "," << pair1 << "," << pair2 << "," << pair3 << std::endl;
 }
 
 void Logger::log(
@@ -100,11 +131,9 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log(client, id, label);
-    std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
-    "\"" << pair2.key << "\":" << pair2.value << "," << 
-    "\"" << pair3.key << "\":" << pair3.value << "," <<
-    "\"" << pair4.key << "\":" << pair4.value << "}" << std::endl;
+    log_base(client, id, label);
+    std::cout << "," << pair1 << "," << pair2 <<
+        "," << pair3 << "," << pair4 << std::endl;
 }
 
 void Logger::log(
@@ -120,11 +149,8 @@ void Logger::log(
     if (!Sim::does_json()) {
         return;
     }
-    log(client, id, label);
-    std::cout << "\"" << pair1.key << "\":" << pair1.value << "," <<
-    "\"" << pair2.key << "\":" << pair2.value << "," << 
-    "\"" << pair3.key << "\":" << pair3.value << "," <<
-    "\"" << pair4.key << "\":" << pair4.value << "," <<
-    "\"" << pair5.key << "\":" << pair5.value << "}" << std::endl;
+    log_base(client, id, label);
+    std::cout << "," << pair1 << "," << pair2 <<
+        "," << pair3 << "," << pair4 << "," << pair5 << std::endl;
 }
 

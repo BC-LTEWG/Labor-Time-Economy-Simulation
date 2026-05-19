@@ -10,13 +10,18 @@
 
 #include "Sim.h"
 
-struct Product;
-
 struct LogPair {
     std::string key;
     double value;
     LogPair(std::string, double);
-    friend std::ostream& operator<<(std::ostream& os, const LogPair& kvp);
+    friend std::ostream& operator<<(std::ostream& os, const LogPair& lp);
+};
+
+struct LogPairS {
+    std::string key;
+    std::string value;
+    LogPairS(std::string, std::string);
+    friend std::ostream& operator<<(std::ostream& os, const LogPairS& lp);
 };
 
 class Logger {
@@ -41,6 +46,12 @@ class Logger {
                 const unsigned int id,
                 const std::string label,
                 const LogPair pair1
+                );
+        static void log(
+                const Client client,
+                const unsigned int id,
+                const std::string label,
+                const LogPairS pair1
                 );
         static void log(
                 const Client client,
