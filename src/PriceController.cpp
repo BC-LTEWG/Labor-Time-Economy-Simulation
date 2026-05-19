@@ -47,6 +47,12 @@ void PriceController::update_price(Plan * plan) {
     if (consumer_good) {
         consumer_good->price_per_unit = price + DISTRIBUTION_LABOR_PER_UNIT;
     }
-    Logger::get_instance()->log(Logger::SOCIETY, "price", product->id, price);
+    Logger::log(
+            Logger::SOCIETY,
+            0,
+            "new_price",
+            LogPair("product_id", product->id),
+            LogPair("price", price)
+            );
 }
 

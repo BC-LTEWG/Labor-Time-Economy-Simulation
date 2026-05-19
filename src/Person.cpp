@@ -271,7 +271,7 @@ void Person::log_placement() {
 
 void Person::log_abilities() {
     for (std::pair<Ability, double> ability : abilities) {
-        Logger::log(
+        Logger::log<LogPair, LogPair>(
                 Logger::PERSON,
                 id,
                 "ability",

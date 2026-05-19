@@ -367,7 +367,7 @@ void Firm::log_initial_employment(
         id,
         "newly employed",
         LogPair("worker_id", worker_id),
-        LogPair("workplace_id", firm_id)
+        LogPair("workplace_id", id)
     );
 }
 
@@ -391,7 +391,7 @@ void Firm::log_busyness(
     double societal_busyness,
     int max_workers_for_transfer
 ) {
-    Logger::log(
+    Logger::log<LogPair, LogPair, LogPair>(
         get_client_type(),
         id,
         "busyness",
@@ -429,7 +429,7 @@ void Firm::log_accepted_order(const Product * product, int requested_turnaround_
             id,
             "accepted_order",
             LogPair("product_id", product->id),
-            LogPair("prequested_turnaround_time", prequested_turnaround_time)
+            LogPair("requested_turnaround_time", requested_turnaround_time)
             );
 }
 
