@@ -79,7 +79,6 @@ class Firm : public Agent {
     std::vector<Person *> propose_transfer(int workers_wanted);
     void finalize_transfer(Person * worker);
 
-    void log_input_inventory(Firm * firm, std::string product_name, double quantity);
 
   protected:
     Society * society;
@@ -130,9 +129,13 @@ class Firm : public Agent {
     void log_inventory_level(const Product * product, const double quantity);
     void log_inventory_reduction(const Product * product, const double quantity);
     void log_reorder(const Product * product, int quantity);
-    void log_initial_employment(const int worker_id, const int firm_id);
+    void log_initial_employment(const unsigned int worker_id, const unsigned int workplace_id);
     void log_busyness(double firm_busyness, double societal_busyness, int max_workers_for_transfer);
-    void log_employment_transfer(const int worker_id, const int old_employer_id, const int new_employer_id);
+    void log_employment_transfer(
+            const unsigned int worker_id,
+            const unsigned int old_workplace_id,
+            const unsigned int new_workplace_id
+            );
     void log_reorder_failure(const Product * product, int quantity);
     void log_transfer_request();
     void log_product_quantity(
@@ -141,10 +144,7 @@ class Firm : public Agent {
             const double quantity
             );
     void log_accepted_order(const Product * product, int requested_turnover_time);
-    // void log_accepted_order(std::string product_name, int requested_turnaround_time);
     void log_demand(const Product * Product, double demand);
-    // void log_demand(std::string product_name, double demand);
     void log_pending_inventory(const Product * product, double pending_inventory);
-    // void log_pending_inventory(std::string product_name, double pending_inventory);
     void log_catalog();
 };

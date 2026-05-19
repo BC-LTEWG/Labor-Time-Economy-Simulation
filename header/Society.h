@@ -54,7 +54,6 @@ class Society : public Agent {
         void log_io_matrix(Eigen::MatrixXd&, size_t);
         void log_labor_vector(Eigen::VectorXd&, size_t);
         void log_consumption_frequencies();
-        void log_consumption_periods();
 
 
         std::vector<Person *> people;

@@ -31,8 +31,13 @@ Society::Society() :
     id = 0;
     set_initial_products();
     for (Product * product : products) {
-        Logger::get_instance()->log(Logger::SOCIETY, "price", product->id, product->price_per_unit);
-        Logger::get_instance()->log(Logger::SOCIETY, "order_size", product->id, product->order_size);
+        Logger::log(
+                Logger::SOCIETY,
+                id,
+                "price",
+                LogPair("product_id", product->id),
+                LogPair("price_per_unit", product->price_per_unit)
+                );
     }
     for (unsigned int i = 0; i < Sim::get_num_producers(); i++) {
         Producer * producer = new Producer(this, {goods[i % Sim::get_num_products()]});
@@ -70,11 +75,6 @@ void Society::on_time_step() {
     for (Firm * firm : firms) {
         firm->on_time_step();
     }
-    // It's too early to be trying to do this, we need to put more thought into it first.
-    // if (Sim::get_current_time_step() >= WORK_HOURS_UPDATE_START &&
-    //         Sim::get_current_time_step() % WORK_HOURS_UPDATE_PERIOD == 0) {
-    //     update_work_hours_daily();
-    // }
 }
 
 void Society::set_initial_products() {
@@ -105,7 +105,6 @@ void Society::set_initial_products() {
     }
     set_product_prices_production_consumption();
     log_consumption_frequencies();
-    log_consumption_periods();
 }
 
 void Society::populate_io_matrix_and_labor_vector(
@@ -169,7 +168,12 @@ double Society::get_total_employment() {
 }
 
 void Society::log_total_employment() {
-    Logger::get_instance()->log(Logger::SOCIETY, "employment", id, get_total_employment());
+    Logger::log(
+            Logger::SOCIETY,
+            id,
+            "employment",
+            LogPair("total", get_total_employment())
+            );
 }
 
 void Society::adjust_io_matrix(
@@ -319,16 +323,19 @@ void Society::retire_person(Person *person) {
 }
 
 void Society::log_io_matrix(Eigen::MatrixXd& A, size_t dim) {
-    Logger::get_instance()->log(Logger::SOCIETY, "A_dim", id, static_cast<int>(dim));
+    Logger::log(Logger::SOCIETY, id, "A", LogPair("dim", static_cast<int>(dim)));
     for (size_t i = 0; i < dim; ++i) {
         for (size_t j = 0; j < dim; ++j) {
             if (A(i, j)) {
-                Logger::get_instance()->log(
+                Logger::log(
                         Logger::SOCIETY,
-                        "A",
                         id,
-                        std::make_pair(i, j),
-                        A(i, j)
+                        "A",
+                        LogPair(
+                            std::string("(") + std::to_string(i) +"," +
+                            std::to_string(j) + ")",
+                            A(i, j)
+                            )
                         );
             }
         }
@@ -336,36 +343,28 @@ void Society::log_io_matrix(Eigen::MatrixXd& A, size_t dim) {
 }
 
 void Society::log_labor_vector(Eigen::VectorXd& l, size_t dim) {
-    Logger::get_instance()->log(Logger::SOCIETY, "l_dim", id, static_cast<int>(dim));
+    Logger::log(Logger::SOCIETY, id, "l", LogPair("dim", static_cast<int>(dim)));
     for (size_t i = 0; i < dim; ++i) {
         if (l(i)) {
-            Logger::get_instance()->log(Logger::SOCIETY, "l", id, i, l(i));
+            Logger::log(
+                    Logger::SOCIETY,
+                    id,
+                    "l",
+                    LogPair(std::to_string(i), l(i))
+                    );
         }
     }
 }
 
 void Society::log_consumption_frequencies() {
-    Logger * logger = Logger::get_instance();
     for (const Product * product : goods) {
-        logger->log(
+        Logger::log(
                 Logger::SOCIETY,
-                "mean_consumption_frequency",
                 id,
-                product->product_name,
-                product->mean_consumption_frequency
+                "mean_consumption_frequency",
+                LogPair("product_id", product->id),
+                LogPair("value", product->mean_consumption_frequency)
                 );
     }
 }
 
-void Society::log_consumption_periods() {
-    Logger * logger = Logger::get_instance();
-    for (const Product * product : goods) {
-        logger->log(
-                Logger::SOCIETY,
-                "mean_consumption_period",
-                id,
-                product->product_name,
-                product->mean_consumption_period
-                );
-    }
-}

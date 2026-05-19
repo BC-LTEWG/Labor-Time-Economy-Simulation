@@ -53,8 +53,8 @@ class Person : public Agent {
 	void retire();
 	void update_health_status();
     void update_busyness();
-    void log_hours(const double hours);
-    void log_purchase(const std::string& product_name, int quantity);
+    void log_hours_worked(const double hours);
+    void log_purchase(const Product * product, int quantity);
     void log_shopping();
     void log_shopping_deficit(double deficit);
     void log_placement();

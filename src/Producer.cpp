@@ -234,55 +234,57 @@ std::unordered_set<Product *> Producer::get_products_to_reorder() {
 
 void Producer::log_plans() {
     for (Plan * plan : plans_in_progress) {
-        Logger::get_instance()->log(
+        Logger::log(
                 Logger::PRODUCER,
-                "plan_quantity_remaining",
                 id,
-                plan->order->product->product_name,
-                plan->quantity_remaining
+                "plan_quantity_remaining",
+                LogPair("product_id", plan->order->product->id),
+                LogPair("quantity_remaining", plan->quantity_remaining)
                 );
     }
 }
 
 void Producer::log_draft_plan(const Plan * draft_plan) {
-    Logger::get_instance()->log(
+    Order * order = draft_plan->order;
+    Logger::log(
             Logger::PRODUCER,
-            "draft_plan",
             id,
-            draft_plan->order->product->product_name,
-            draft_plan->order->quantity
+            "draft_plan",
+            LogPair("product_id", order->product->id),
+            LogPair("quantity", order->quantity)
             );
 }
 
 void Producer::log_dropped_order(const Order * order) {
-    Logger::get_instance()->log(
+    Logger::log(
             Logger::PRODUCER,
-            "dropped_order",
             id,
-            order->product->product_name,
-            order->quantity
+            "dropped_order",
+            LogPair("product_id", order->product->id),
+            LogPair("quantity", order->quantity)
             );
 }
 
 void Producer::log_pursued_plan(const Plan * draft_plan) {
-    Logger::get_instance()->log(
+    Order * order = draft_plan->order;
+    Logger::log<LogPair, LogPair, LogPair, LogPair>(
             Logger::PRODUCER,
-            "pursued_plan",
             id,
-            draft_plan->order->customer->get_id(),
-            draft_plan->order->product->id,
-            draft_plan->order->quantity,
-            draft_plan->workers.size()
+            "pursued_plan",
+            LogPair("customer_id", order->customer->get_id()),
+            LogPair("product_id", order->product->id),
+            LogPair("quantity", order->quantity),
+            LogPair("num_workers", draft_plan->workers.size())
             );
 }
 
 void Producer::log_ended_plan(const Plan * plan) {
-    Logger::get_instance()->log(
+    Order * order = plan->order;
+    Logger::log(
             Logger::PRODUCER,
-            "ended_plan",
             id,
-            plan->order->product->product_name,
-            plan->order->quantity,
-            plan->order->quantity 
+            "ended_plan",
+            LogPair("product_id", order->product->id),
+            LogPair("quantity", order->quantity)
             );
 }
