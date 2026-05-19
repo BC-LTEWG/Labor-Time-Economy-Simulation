@@ -1,12 +1,6 @@
 #include <stdexcept>
 
-#include "Constants.h"
-#include "Firm.h"
 #include "Logger.h"
-#include "Person.h"
-#include "Product.h"
-#include "Sim.h"
-#include "sqlite3.h"
 
 LogPair::LogPair(std::string key, double value) :
     key{key}, value{value}

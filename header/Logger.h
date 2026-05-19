@@ -1,13 +1,5 @@
 #pragma once
 
-#include <cstdarg>
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <tuple>
-#include <variant>
-#include <unordered_map>
-
 #include "Sim.h"
 
 struct LogPair {
