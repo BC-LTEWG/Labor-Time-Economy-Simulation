@@ -230,8 +230,14 @@ double Firm::get_resupply_deficit(Product * product) {
     for (Order * order : product_to_outbound_orders[product]) {
         resupply_rate += order->quantity / order->predicted_turnaround_time;
     }
+    double reorder_urgency = 0.0;
+    if (get_client_type() == Logger::DISTRIBUTOR) {
+        reorder_urgency = DISTRIBUTOR_REORDER_URGENCY;
+    } else if (get_client_type() == Logger::PRODUCER) {
+        reorder_urgency = PRODUCER_REORDER_URGENCY;
+    }
     double inventory_adjusted_demand = get_demand(product)
-        * std::pow(reorder_threshold / inventory, FIRM_REORDER_URGENCY);
+        * std::pow(reorder_threshold / inventory, reorder_urgency);
     double raw_resupply_deficit = inventory_adjusted_demand - resupply_rate;
     double resupply_deficit = 
         raw_resupply_deficit <= 0 ? 0 : raw_resupply_deficit;
@@ -246,10 +252,10 @@ void Firm::check_and_reorder_input(Product * product) {
     }
     double reorder_threshold = get_reorder_threshold(product);
     log_demand(product, reorder_threshold);
-    double inventory = get_pending_inventory(product);
-    if (inventory >= reorder_threshold || !reorder_threshold) {
-        return;
-    }
+    // double inventory = get_pending_inventory(product);
+    // if (inventory >= reorder_threshold || !reorder_threshold) {
+    //     return;
+    // }
     log_reorder_attempt(product);
     double lead_time = FIRM_STOCKPILE_DURATION * FIRM_REORDER_MAX_PROP;
     int order_quantity = std::ceil(lead_time * resupply_deficit);
@@ -689,12 +695,18 @@ void Firm::add_demand_signal(Product * product, double quantity, Firm * firm) {
 }
 
 void Firm::update_demands() {
+    int averaging_window = 0;
+    if (get_client_type() == Logger::PRODUCER) {
+        averaging_window = PRODUCER_DEMAND_AVERAGING_WINDOW;
+    } else if (get_client_type() == Logger::DISTRIBUTOR) {
+        averaging_window = DISTRIBUTOR_DEMAND_AVERAGING_WINDOW;
+    }
     for (std::pair<Product * const, double>& demand : consumer_demands) {
-        double decay = demand.second / DISTRIBUTOR_DEMAND_AVERAGING_WINDOW;
+        double decay = demand.second / averaging_window;
         demand.second -= decay;
     }
     for (std::pair<Product * const, double>& demand : producer_demands) {
-        double decay = demand.second / PRODUCER_DEMAND_AVERAGING_WINDOW;
+        double decay = demand.second / averaging_window;
         demand.second -= decay;
     }
 }

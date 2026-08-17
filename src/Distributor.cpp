@@ -102,10 +102,10 @@ void Distributor::check_and_reorder_input(Product * product) {
     double reorder_threshold = get_reorder_threshold(consumer_good);
     log_demand(consumer_good, reorder_threshold);
 
-    double inventory = get_pending_inventory(consumer_good);
-    if (inventory >= reorder_threshold || !reorder_threshold) {
-        return;
-    }
+    // double inventory = get_pending_inventory(consumer_good);
+    // if (inventory >= reorder_threshold || !reorder_threshold) {
+    //     return;
+    // }
     log_reorder_attempt(product);
     double lead_time = 
         static_cast<int>(get_inventory_level(good)) / resupply_deficit;
