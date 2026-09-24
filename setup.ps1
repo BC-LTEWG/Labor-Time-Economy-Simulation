@@ -78,7 +78,7 @@ Write-Host "Successfully created binary!"
 Write-Host
 
 Write-Host "Configuring files..."
-$UserConfigDir = (& $VenvPython -c 'from platformdirs import user_config_dir; print(user_config_dir("Overseer", False, roaming=True))').Trim()
+$UserConfigDir = (& $VenvPython -c "from platformdirs import user_config_dir; print(user_config_dir('Overseer', False, roaming=True))").Trim()
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($UserConfigDir)) {
     throw "Could not determine the Overseer configuration directory."
 }
