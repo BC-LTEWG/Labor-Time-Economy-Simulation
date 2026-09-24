@@ -32,7 +32,14 @@ elseif (Get-Command python3 -ErrorAction SilentlyContinue) {
     $PythonCommand = (Get-Command python3).Source
 }
 else {
-    Write-Error "Python does not appear to be installed or available on PATH. Please install Python 3.10 or higher and run this installer again."
+    Write-Error "Python does not appear to be installed or available on PATH. Please install Python 3.12 or higher and run this installer again."
+}
+
+# overseer_model uses f-string syntax introduced in Python 3.12 (PEP 701)
+& $PythonCommand @PythonPrefixArguments -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"
+if ($LASTEXITCODE -ne 0) {
+    $FoundVersion = & $PythonCommand @PythonPrefixArguments --version
+    Write-Error "Found $FoundVersion at $PythonCommand, but Python 3.12 or higher is required. Please install it and run this installer again."
 }
 
 Write-Host "Checking for make..."
