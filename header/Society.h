@@ -15,6 +15,7 @@ struct Machine;
 struct Product;
 class Distributor;
 class Firm;
+class TradeFirm;  // Firm handling exchanges with the CE.
 class Person;
 class Producer;
 
@@ -100,6 +101,7 @@ class Society : public Agent {
         std::unordered_map<Product *, double> underlying_living_labor_per_unit;
         std::vector<Firm *> firms;
         std::vector<Producer *> producers;
+        TradeFirm * trade_firm = nullptr;  // Firm responsible for LTE-CE trade.
         std::unordered_map<Product *, std::vector<Producer *>>
             product_to_suppliers;
         std::vector<Distributor *> distributors;
