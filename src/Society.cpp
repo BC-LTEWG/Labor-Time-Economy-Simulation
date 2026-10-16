@@ -261,10 +261,15 @@ std::vector<Producer *>& Society::get_suppliers(Product * product) {
 
 void Society::update_busyness() {
     busyness = 0.0;
+    int active_workers = 0;
     for (Person * person : people) {
-        busyness += person->get_busyness();
+        if(!person->get_is_retired()) {
+            busyness += person->get_busyness();
+        }
     }
-    busyness /= people.size();
+    if(active_workers > 0) {
+        busyness /= people.size();
+    }
 }
 
 double Society::get_busyness() {

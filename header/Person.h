@@ -38,6 +38,7 @@ class Person : public Agent {
     void set_firm(Firm *);
     void set_plan(Plan *);
     Firm * get_firm();
+    bool get_is_retired();
   
   private:
     unsigned int id;
@@ -51,6 +52,7 @@ class Person : public Agent {
     double account;
     double busyness_this_time_step = 0.0;
     double busyness = 0.0;
+    bool is_retired = false;
  	std::vector<Distributor *> ranked_distributors;
     static const char * health_status_names[];
 

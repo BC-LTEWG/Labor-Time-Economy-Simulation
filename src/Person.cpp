@@ -53,6 +53,10 @@ unsigned int Person::get_id() {
     return id;
 }
 
+bool Person::get_is_retired() {
+    return is_retired;
+}
+
 std::unordered_map<Ability *, double>& Person::get_abilities() {
     return abilities;
 }
@@ -84,6 +88,9 @@ void Person::register_hours_worked(double hours_worked) {
 }
 
 bool Person::charge(double cost) {
+    if(is_retired) {
+        Society::get_instance()->charge_from_public_fund(cost);
+    }
     if (cost > account) {
         return false;
     }
@@ -183,6 +190,12 @@ bool Person::will_retire() {
 }
 
 void Person::retire() {
+    is_retired = true;
+    if(firm) {
+        set_firm(nullptr);
+        set_plan(nullptr);
+    }
+
     Society::get_instance()->retire_person(this);
 }
 
@@ -238,9 +251,9 @@ void Person::on_time_step() {
 	++age;
     consume();
     // this is not a good idea until we implement replacement population growth
-	// if (will_retire()) {
-        // retire();
-    // }
+	if (!is_retired && will_retire()) {
+        retire();
+    }
 	update_health_status();
 
 	if (will_shop()) {
