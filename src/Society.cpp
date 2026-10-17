@@ -21,6 +21,7 @@
 #include "Producer.h"
 #include "Sim.h"
 #include "Society.h"
+#include "Trader.h"
 
 namespace {
     class MultidimensionalPerronEigenspace : public std::runtime_error {
@@ -111,6 +112,9 @@ void Society::initialize() {
         producer->initialize_inventory();
         producer->inject_randomness_into_demand();
     }
+
+    trader = new Trader();
+    firms.push_back(trader);
     std::unordered_set<Product *> distributor_catalog(consumer_goods.begin(), consumer_goods.end());
     for (unsigned int i = 0; i < Sim::get_num_distributors(); i++) {
         Distributor * distributor = new Distributor(distributor_catalog);
@@ -121,6 +125,8 @@ void Society::initialize() {
     for (unsigned int i = 0; i < Sim::get_num_people(); i++) {
         birth_person();
     }
+
+    trader->initialize_inventory();
 }
 
 unsigned int Society::get_id() {

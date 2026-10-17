@@ -25,6 +25,7 @@ class Logger {
             DISTRIBUTOR,
             PERSON,
             PRODUCER,
+            TRADER,
             PRODUCT,
             SIMULATION,
             SOCIETY,
@@ -58,6 +59,7 @@ void Logger::log(
         "Distributor",
         "Person",
         "Producer",
+        "Trader",
         "Product",
         "Simulation",
         "Society"
