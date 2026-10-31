@@ -29,7 +29,8 @@ class Firm : public Agent {
     virtual void initialize_inventory() = 0;
     void inject_randomness_into_demand();
     double get_avg_productivity();
-    virtual double get_inventory_level(Product * product);
+    double get_input_inventory_level(Product * product);
+    double get_output_inventory_level(Product * product);
     void receive_shipment(Order * order);
     void receive_shipment(Plan * plan);
     void process_payment(Plan * plan, double transaction_amount);
@@ -49,6 +50,7 @@ class Firm : public Agent {
     std::unordered_set<Person *> workers,
         standby_workers;
     std::unordered_map<Product *, double> input_inventory;
+    std::unordered_map<Product *, double> output_inventory;
     std::unordered_set<Product *> catalog;
     
     std::unordered_map<Product *, double> consumer_demands;

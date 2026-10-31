@@ -101,7 +101,7 @@ double Producer::get_max_order_quantity(
             continue;
         }
         double input_max_order_quantity = 
-                get_inventory_level(input.first) / input.second;
+                get_input_inventory_level(input.first) / input.second;
         if (input_max_order_quantity < 1.0) {
             missing_resources.push_back(input.first);
         }
@@ -113,7 +113,7 @@ double Producer::get_max_order_quantity(
             order->requested_turnaround_time
             * Society::get_instance()->get_work_week_proportion()
             / machine->lifetime;
-        if (desired_machine_usage > get_inventory_level(machine)) {
+        if (desired_machine_usage > get_input_inventory_level(machine)) {
             missing_resources.push_back(machine);
             max_order_quantity = 0;
         }

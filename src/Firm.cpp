@@ -146,13 +146,18 @@ void Firm::inject_randomness_into_demand() {
     }
 }
 
-double Firm::get_inventory_level(Product * product) {
+double Firm::get_input_inventory_level(Product * product) {
     return input_inventory.count(product) ? input_inventory[product] : 0;
+}
+
+double Firm::get_output_inventory_level(Product * product) {
+    return output_inventory.count(product) ? output_inventory[product] : 0;
 }
 
 void Firm::receive_shipment(Plan * plan) {
     Order * order = plan->order;
     double quantity_delivered = order->quantity - plan->quantity_remaining;
+    plan->firm->output_inventory[order->product] -= quantity_delivered;
     input_inventory[order->product] += quantity_delivered;
     product_to_outbound_orders[order->product].erase(order);
     double transaction_amount =
@@ -417,7 +422,7 @@ void Firm::handle_start_plan_failure(
     Product * missing_resource,
     double amount_needed) {
 
-    double have_on_hand = get_inventory_level(missing_resource);
+    double have_on_hand = get_input_inventory_level(missing_resource);
     double deficit = amount_needed - have_on_hand;
 
     rollback_plan_inputs(plan);
@@ -537,8 +542,11 @@ void Firm::move_plan_forward_one_step(Plan * plan) {
 }
 
 void Firm::end_plan(Plan * plan) {
+    Order * order = plan->order;
+    double quantity_delivered = order->quantity - plan->quantity_remaining;
     log_ended_plan(plan);
     plan->order->status = Order::kOrderFinished;
+    output_inventory[order->product] += quantity_delivered;
     plan->order->customer->receive_shipment(plan);
     account -= plan->debt;
     for (std::pair<Product *, double> input : plan->inventory) {
@@ -608,7 +616,7 @@ double Firm::get_work_week_proportion(Plan * plan) {
 }
 
 double Firm::get_pending_inventory(Product * product) {
-    double pending_inventory = get_inventory_level(product);
+    double pending_inventory = get_input_inventory_level(product);
     for (Order * order : product_to_outbound_orders[product]) {
         pending_inventory += order->quantity;
     }
