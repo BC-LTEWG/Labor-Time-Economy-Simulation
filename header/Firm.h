@@ -29,8 +29,9 @@ class Firm : public Agent {
     virtual void initialize_inventory() = 0;
     void inject_randomness_into_demand();
     double get_avg_productivity();
-    virtual double get_inventory_level(Product * product);
-    void receive_shipment(Order * order);
+    double get_input_inventory_level(Product * product);
+    double get_output_inventory_level(Product * product);
+    void send_shipment(Plan * plan);
     void receive_shipment(Plan * plan);
     void process_payment(Plan * plan, double transaction_amount);
     double get_busyness();
@@ -49,6 +50,7 @@ class Firm : public Agent {
     std::unordered_set<Person *> workers,
         standby_workers;
     std::unordered_map<Product *, double> input_inventory;
+    std::unordered_map<Product *, double> output_inventory;
     std::unordered_set<Product *> catalog;
     
     std::unordered_map<Product *, double> consumer_demands;
@@ -115,8 +117,9 @@ class Firm : public Agent {
     void log_pursued_plan(const Plan * draft_plan);
     void log_ended_plan(const Plan * plan);
     void log_shipment_received(const Product * product, const double quantity);
-    void log_inventory_level(const Product * product, const double quantity);
-    void log_inventory_reduction(const Product * product, const double quantity);
+    void log_input_inventory_level(const Product * product, const double quantity);
+    void log_output_inventory_level(const Product * product, const double quantity);
+    void log_input_inventory_reduction(const Product * product, const double quantity);
     void log_initial_employment(const unsigned int worker_id, const unsigned int workplace_id);
     void log_busyness(double firm_busyness);
     void log_employment_transfer(

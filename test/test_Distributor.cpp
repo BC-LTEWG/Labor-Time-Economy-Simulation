@@ -30,15 +30,15 @@ TEST_CASE("Distributor Logic Testing") {
 
     SUBCASE("add_to_catalog() calculates inventory") {
         Good* base_good = test_consumerGood->corresponding_good;
-        CHECK(test_distributor->get_inventory_level(test_consumerGood) > 0); //inventory should be > 0
-        CHECK(test_distributor->get_inventory_level(base_good) > 0); //automatically called (no need to do here)
+        CHECK(test_distributor->get_input_inventory_level(test_consumerGood) > 0); //inventory should be > 0
+        CHECK(test_distributor->get_input_inventory_level(base_good) > 0); //automatically called (no need to do here)
     }
 
     SUBCASE("try_sell_goods() deducts inventory on purchase") {
         std::vector<Person*> people = Society::get_instance()->people; //find person from sim
         REQUIRE(people.size() > 0);
         Person* buyer = people[0];
-        double initial_inventory = test_distributor->get_inventory_level(test_consumerGood); 
+        double initial_inventory = test_distributor->get_input_inventory_level(test_consumerGood); 
         int quantity_to_buy = 1;
 
         bool original_sector_status = test_consumerGood->public_sector; //good defined as public sector item (avoids $0 edgecase)
@@ -47,7 +47,7 @@ TEST_CASE("Distributor Logic Testing") {
         int amount_sold = test_distributor->try_sell_goods(test_consumerGood, quantity_to_buy, buyer); //sale made
         if (initial_inventory >= 1.0) {
             CHECK(amount_sold == 1); 
-            CHECK(test_distributor->get_inventory_level(test_consumerGood) == doctest::Approx(initial_inventory - 1.0)); //check if reduced by 1
+            CHECK(test_distributor->get_input_inventory_level(test_consumerGood) == doctest::Approx(initial_inventory - 1.0)); //check if reduced by 1
         } else {
             CHECK(amount_sold == 0);
         }
