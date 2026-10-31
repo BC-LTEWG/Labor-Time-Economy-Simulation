@@ -58,7 +58,7 @@ void Distributor::initialize_inventory() {
         input_inventory[demand.first] = 
             get_reorder_threshold(demand.first) * noise;
 
-        log_inventory_level(demand.first, input_inventory[demand.first]);
+        log_input_inventory_level(demand.first, input_inventory[demand.first]);
     }
 }
 

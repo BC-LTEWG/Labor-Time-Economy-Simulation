@@ -111,8 +111,8 @@ class Aggregator:
                 "hours_worked": self.record_hours_worked
             },
             "Firm": {
-                "inventory_level": self.record_inventory_level,
-                "inventory_reduction": self.record_inventory_reduction,
+                "input_inventory_level": self.record_input_inventory_level,
+                "input_inventory_reduction": self.record_input_inventory_reduction,
                 "catalog_addition": self.record_catalog_addition,
                 "pursued_plan": self.record_pursued_plan,
                 "ended_plan": self.record_plan_ended,
@@ -1074,7 +1074,7 @@ class Aggregator:
     def record_hours_worked(self, dic):
         pass
 
-    def record_inventory_level(self, dic):
+    def record_input_inventory_level(self, dic):
         prod_id= dic["product_id"]
         firm_id = dic["id"]
         client = dic["client"]
@@ -1086,7 +1086,7 @@ class Aggregator:
         if client == "Distributor":
             self.distributors[self._get_dist_key(firm_id)]["inventory"][prod_id] = amt
 
-    def record_inventory_reduction(self, dic):
+    def record_input_inventory_reduction(self, dic):
         prod_id = dic["product_id"]
         amt = dic["amount"]
         client = dic["client"]

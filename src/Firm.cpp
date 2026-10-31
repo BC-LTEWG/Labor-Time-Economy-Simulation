@@ -154,10 +154,17 @@ double Firm::get_output_inventory_level(Product * product) {
     return output_inventory.count(product) ? output_inventory[product] : 0;
 }
 
+void Firm::send_shipment(Plan * plan) {
+    Order * order = plan->order;
+    double quantity_delivered = order->quantity - plan->quantity_remaining;
+    output_inventory[order->product] -= quantity_delivered;
+    log_output_inventory_level(order->product, output_inventory[order->product]);
+    order->customer->receive_shipment(plan);
+}
+
 void Firm::receive_shipment(Plan * plan) {
     Order * order = plan->order;
     double quantity_delivered = order->quantity - plan->quantity_remaining;
-    plan->firm->output_inventory[order->product] -= quantity_delivered;
     input_inventory[order->product] += quantity_delivered;
     product_to_outbound_orders[order->product].erase(order);
     double transaction_amount =
@@ -165,7 +172,7 @@ void Firm::receive_shipment(Plan * plan) {
     account -= transaction_amount;
     plan->firm->process_payment(plan, transaction_amount);
     log_shipment_received(order->product, quantity_delivered);
-    log_inventory_level(order->product, input_inventory[order->product]);
+    log_input_inventory_level(order->product, input_inventory[order->product]);
 }
 
 void Firm::process_payment(Plan * plan, double transaction_amount) {
@@ -193,8 +200,8 @@ bool Firm::remove_input_from_inventory(
     }
     input_inventory[product] -= quantity;
     add_demand_signal(product, quantity, this);
-    log_inventory_reduction(product, quantity);
-    log_inventory_level(product, input_inventory[product]);
+    log_input_inventory_reduction(product, quantity);
+    log_input_inventory_level(product, input_inventory[product]);
     return true;
 }
 
@@ -345,7 +352,7 @@ void Firm::return_inputs_to_inventory(
         double quantity = deduction.second;
         input_inventory[input] += quantity;
         add_demand_signal(input, -quantity, this);
-        log_inventory_level(input, input_inventory[input]);
+        log_input_inventory_level(input, input_inventory[input]);
     }
 }
 
@@ -547,6 +554,7 @@ void Firm::end_plan(Plan * plan) {
     log_ended_plan(plan);
     plan->order->status = Order::kOrderFinished;
     output_inventory[order->product] += quantity_delivered;
+    log_output_inventory_level(order->product, output_inventory[order->product]);
     plan->order->customer->receive_shipment(plan);
     account -= plan->debt;
     for (std::pair<Product *, double> input : plan->inventory) {
@@ -850,12 +858,16 @@ void Firm::log_shipment_received(const Product * product, const double quantity)
     log_product_quantity("shipment_received", product, quantity);
 }
 
-void Firm::log_inventory_level(const Product * product, const double quantity) {
-    log_product_quantity("inventory_level", product, quantity);
+void Firm::log_input_inventory_level(const Product * product, const double quantity) {
+    log_product_quantity("input_inventory_level", product, quantity);
 }
 
-void Firm::log_inventory_reduction(const Product * product, const double quantity) {
-    log_product_quantity("inventory_reduction", product, quantity);
+void Firm::log_output_inventory_level(const Product * product, const double quantity) {
+    log_product_quantity("output_inventory_level", product, quantity);
+}
+
+void Firm::log_input_inventory_reduction(const Product * product, const double quantity) {
+    log_product_quantity("input_inventory_reduction", product, quantity);
 }
 
 void Firm::log_initial_employment(
