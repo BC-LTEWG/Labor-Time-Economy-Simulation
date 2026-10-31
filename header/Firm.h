@@ -31,7 +31,7 @@ class Firm : public Agent {
     double get_avg_productivity();
     double get_input_inventory_level(Product * product);
     double get_output_inventory_level(Product * product);
-    void receive_shipment(Order * order);
+    void send_shipment(Plan * plan);
     void receive_shipment(Plan * plan);
     void process_payment(Plan * plan, double transaction_amount);
     double get_busyness();
@@ -117,8 +117,9 @@ class Firm : public Agent {
     void log_pursued_plan(const Plan * draft_plan);
     void log_ended_plan(const Plan * plan);
     void log_shipment_received(const Product * product, const double quantity);
-    void log_inventory_level(const Product * product, const double quantity);
-    void log_inventory_reduction(const Product * product, const double quantity);
+    void log_input_inventory_level(const Product * product, const double quantity);
+    void log_output_inventory_level(const Product * product, const double quantity);
+    void log_input_inventory_reduction(const Product * product, const double quantity);
     void log_initial_employment(const unsigned int worker_id, const unsigned int workplace_id);
     void log_busyness(double firm_busyness);
     void log_employment_transfer(

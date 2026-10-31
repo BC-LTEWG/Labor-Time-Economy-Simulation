@@ -83,7 +83,7 @@ void Producer::initialize_inventory() {
             );
         }
         input_inventory[demand.first] = input_amount_added;
-        log_inventory_level(demand.first, input_amount_added);
+        log_input_inventory_level(demand.first, input_amount_added);
     }
 }
 
