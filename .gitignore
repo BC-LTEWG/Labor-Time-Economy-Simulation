@@ -47,6 +47,7 @@ Houes-Money\ Interface\ Improved/main
 # Hidden system and tool artifacts
 .DS_Store
 .venv
+venv/
 myenv
 .vscode
 *.json
@@ -83,3 +84,4 @@ header/*.swp
 test/*.swp
 *.txt
 run.sh
+run.ps1
