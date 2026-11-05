@@ -34,6 +34,7 @@ class Society : public Agent {
         double get_underlying_living_labor_per_unit(Product * product);
         void set_underlying_living_labor_per_unit(Product * product, double ll);
         std::vector<Firm *>& get_firms();
+        Trader * get_trader();
         std::vector<Distributor *>& get_distributors();
         std::unordered_set<Person *>& get_unemployed_people();
         void retire_person(Person * person);

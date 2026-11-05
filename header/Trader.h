@@ -13,11 +13,25 @@ public:
     void initialize_inventory() override;
     void on_time_step() override;
 
-private:
-    double calculate_trade_profitability(Product * product);
+    double get_ce_import_price(Product * product);
 
+    bool import_product_from_ce(
+        Product * product,
+        double quantity,
+        Firm * importing_firm,
+        double ce_price_per_unit
+    );
+
+private:
+    double cash_balance = 0.0;
+
+    static constexpr double CASH_THRESHOLD = 500.0;
+
+    double calculate_trade_profitability(Product * product);
     double get_ce_value(Product * product);
     double get_melt();
 
+    void receive_shipment(Plan * plan) override;
     void select_and_order_most_profitable_export();
+    void export_product(Product * product, double quantity);
 };

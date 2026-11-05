@@ -31,7 +31,12 @@ class Firm : public Agent {
     double get_avg_productivity();
     virtual double get_inventory_level(Product * product);
     void receive_shipment(Order * order);
-    void receive_shipment(Plan * plan);
+    virtual void receive_shipment(Plan * plan);
+    void receive_ce_import(
+        Product * product,
+        double quantity,
+        double cost_in_labor_hours
+    );
     void process_payment(Plan * plan, double transaction_amount);
     double get_busyness();
     double get_account();
@@ -59,7 +64,7 @@ class Firm : public Agent {
     std::unordered_map<Product *, double> recorded_living_labor_per_unit;
     std::unordered_set<Plan *> plans_in_progress;
 
-    Producer * send_order(Order * order);
+    bool send_order(Order * order);
     bool remove_input_from_inventory(
         Product * product,
         double quantity
