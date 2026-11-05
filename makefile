@@ -25,6 +25,7 @@ ${APP} : ${BUILD_DIR}/Product.o \
 	${BUILD_DIR}/Firm.o \
 	${BUILD_DIR}/Producer.o \
 	${BUILD_DIR}/Distributor.o \
+	${BUILD_DIR}/Trader.o \
 	${BUILD_DIR}/PriceController.o \
 	${BUILD_DIR}/Society.o \
 	${BUILD_DIR}/Logger.o \
@@ -57,6 +58,9 @@ ${BUILD_DIR}/Producer.o : ${SRC_DIR}/Producer.cpp ${HDR_DIR}/Producer.h ${HDR_DI
 	g++ ${FLAGS} -c $< -o $@
 
 ${BUILD_DIR}/Distributor.o : ${SRC_DIR}/Distributor.cpp ${HDR_DIR}/Distributor.h ${HDR_DIR}/Constants.h
+	g++ ${FLAGS} -c $< -o $@
+
+${BUILD_DIR}/Trader.o : ${SRC_DIR}/Trader.cpp ${HDR_DIR}/Trader.h ${HDR_DIR}/Firm.h ${HDR_DIR}/Constants.h
 	g++ ${FLAGS} -c $< -o $@
 
 ${BUILD_DIR}/PriceController.o : ${SRC_DIR}/PriceController.cpp ${HDR_DIR}/PriceController.h ${HDR_DIR}/Constants.h

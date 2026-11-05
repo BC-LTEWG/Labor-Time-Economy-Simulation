@@ -84,3 +84,5 @@ const double DESIRED_INITIAL_PROFITABILITY = 0.5;
 const char * const LOGGING_DIR = "data";
 const char * const LOG_FILE = "data/lte.db";
 
+const double CE_PRICE_VARIATION = 0.05;
+const double MELT = 1.0;
