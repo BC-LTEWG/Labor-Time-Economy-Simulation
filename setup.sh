@@ -9,7 +9,14 @@ elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD=python
 else
     echo "Error: Python does not appear to be installed. If you think this is not the case, you should check to make sure it was added to your system PATH at the time of installation."
-    echo "Please ensure Python 3.10 or higher is installed on your system, and then run this installer again."
+    echo "Please ensure Python 3.12 or higher is installed on your system, and then run this installer again."
+    exit 1
+fi
+
+# overseer_model uses f-string syntax introduced in Python 3.12 (PEP 701)
+if ! "$PYTHON_CMD" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)'; then
+    echo "Error: found $("$PYTHON_CMD" --version 2>&1) ($(command -v "$PYTHON_CMD")), but Python 3.12 or higher is required."
+    echo "Please install Python 3.12 or higher and run this installer again."
     exit 1
 fi
 

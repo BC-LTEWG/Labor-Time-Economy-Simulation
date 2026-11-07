@@ -4,15 +4,20 @@ Code and supporting documents for the Labor-Time Economy Working Group project a
 
 # Usage
 
+## Prerequisites
+- A C++17 compiler available as `g++` (the makefile calls `g++`) and GNU `make`.
+- Python 3.12 or higher, for the Overseer visualization layer.
+- On Windows, `g++` and `make` are not installed by default. Install them separately (for example MinGW-w64 `g++` and GNU `make`) and make sure both are on your `PATH`.
+
 ## Building and Running From Command Line
-- To build the project, run `make`. To run the simulation, enter `/bin/sim/` or `cd bin ; ./sim`.
-- To build unit tests, run `make tests`'. To run them, enter `cd test ; ./run_tests.sh`. Note that you cannot run the `run_tests.sh` script from outside of `test` because it uses a glob expression that depends on the directory from which the script is run.
+- To build the project, run `make`. To run the simulation, enter `./bin/sim` or `cd bin ; ./sim`.
+- To build unit tests, run `make tests`. To run them, enter `cd test ; ./run_tests.sh`. Note that you cannot run the `run_tests.sh` script from outside of `test` because it uses a glob expression that depends on the directory from which the script is run.
 
 ## Building and Running Through Overseer
 The LTE comes with a robust visualization layer for [Overseer](https://github.com/alexbcreiner0/Overseer), allowing one to explore the model interactively, experimenting with different parameter settings and viewing evolution in real time. We also provide a script which can get you started with this layer very quickly. 
-1. Open up a terminal and clone the repo: `git clone --recurse-submodules https://github.com/BC-LTEWG/Labor-Time-Economy-Simulation` **Important**: Use the `--recurse_submodules` flag when you clone it, so as to also clone Overseer's source code:
+1. Open up a terminal and clone the repo: `git clone --recurse-submodules https://github.com/BC-LTEWG/Labor-Time-Economy-Simulation` **Important**: Use the `--recurse-submodules` flag when you clone it, so as to also clone Overseer's source code:
 ```
-git clone --recurse-submodules 
+git clone --recurse-submodules https://github.com/BC-LTEWG/Labor-Time-Economy-Simulation
 ```
 If you have already cloned the repo and did not use this flag, you can either clone Overseer into the repo's root directory manually, or, equivalently, run the following command from inside of it:
 ```
@@ -29,4 +34,4 @@ For more information on using Overseer, see [here](https://overseer-modeling.rea
 
 Additional notes:
 - Overseer comes with a variety of other detailed economic models, which are *not* included when you install Overseer through this `setup.sh` path. To access these, simply go to your Application Settings in Overseer and change your user models directory to anything else, making sure that the leaf folder does not exist yet. For example, if you want all of your models to appear inside of your user Documents on Linux, you would write in `home/<username>/Documents/Overseer/models`, and make sure that there is no models directory inside of your `~/Documents/Overseer` folder yet. The next time you launch Overseer, it will detect that this folder is missing, create it, and dump all of the prepackaged models inside of it. 
-- If you want the Labor Time Economy simulation to appear in your available demos list after doing this, simply drag the `overseer_modeling` directory into that folder which you created.
+- If you want the Labor Time Economy simulation to appear in your available demos list after doing this, simply drag the `overseer_model` directory into that folder which you created.
