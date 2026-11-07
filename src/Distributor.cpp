@@ -58,7 +58,7 @@ void Distributor::initialize_inventory() {
         input_inventory[demand.first] = 
             get_reorder_threshold(demand.first) * noise;
 
-        log_inventory_level(demand.first, input_inventory[demand.first]);
+        log_input_inventory_level(demand.first, input_inventory[demand.first]);
     }
 }
 
@@ -68,7 +68,7 @@ int Distributor::try_sell_goods(
         int quantity, Person * person
         ) {
     int available = std::min(static_cast<int>(
-                get_inventory_level(consumer_good)), quantity);
+                get_input_inventory_level(consumer_good)), quantity);
     if (!available) {
         return 0;
     }
@@ -108,7 +108,7 @@ void Distributor::check_and_reorder_input(Product * product) {
     }
     log_reorder_attempt(product);
     double lead_time = 
-        static_cast<int>(get_inventory_level(good)) / resupply_deficit;
+        static_cast<int>(get_input_inventory_level(good)) / resupply_deficit;
     lead_time = std::min(
         lead_time,
         FIRM_STOCKPILE_DURATION * FIRM_REORDER_MAX_PROP
