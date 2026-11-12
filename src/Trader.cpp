@@ -4,12 +4,14 @@
 #include <random>
 #include <cmath>
 #include "Sim.h"
+#include <unordered_set>
 
 #include "Trader.h"
 #include "Order.h"
 #include "Product.h"
 #include "Society.h"
 #include "Plan.h"
+#include "Constants.h"
 
 Trader::Trader() : Firm() {}
 
@@ -25,16 +27,6 @@ void Trader::initialize_inventory() {
     // # Testing
     std::cout << "[Trader] Initializing inventory..." << std::endl;
     select_and_order_most_profitable_export();
-}
-
-double Trader::calculate_trade_profitability(Product * product) {
-    double ce_value = get_ce_value(product);
-    double melt = get_melt();
-
-    double ce_value_in_lte = ce_value / melt;
-    double lte_cost = product->price_per_unit;
-
-    return ce_value_in_lte - lte_cost;
 }
 
 double Trader::get_ce_value(Product * product) {
@@ -56,41 +48,40 @@ double Trader::get_ce_import_price(Product * product) {
     return get_ce_value(product);
 }
 
-bool Trader::import_product_from_ce(
-    Product * product,
-    double quantity,
-    Firm * importing_firm,
-    double ce_price_per_unit
-) {
-    if (quantity <= 0 || ce_price_per_unit <= 0 || importing_firm == nullptr) {
+bool Trader::receive_import_order(Order * order) {
+    if (order == nullptr || order->quantity <= 0 ||
+        order->customer == nullptr) {
         return false;
     }
 
-    double total_ce_import_cost = ce_price_per_unit * quantity;
+    std::cout << "[Trader] Import order received: Product "
+          << order->product->id
+          << ", Quantity: " << order->quantity << std::endl;
 
-    if (cash_balance < total_ce_import_cost) {
+    pending_import_orders.push_back(order);
+    return true;
+}
+
+bool Trader::import_into_inventory(Product * product, int quantity) {
+    if (product == nullptr || quantity <= 0) {
         return false;
     }
 
-    double total_import_cost_in_labor_hours = total_ce_import_cost / get_melt();
+    double ce_price = get_ce_import_price(product);
+    double total_cost = ce_price * quantity;
 
-    cash_balance -= total_ce_import_cost;
+    if (ce_price <= 0 || cash_balance < total_cost) {
+        return false;
+    }
 
-    importing_firm->receive_ce_import(
-        product,
-        quantity,
-        total_import_cost_in_labor_hours
-    );
+    cash_balance -= total_cost;
+    input_inventory[product] += quantity;
 
-    account += total_import_cost_in_labor_hours;
+    std::cout << "[Trader] CE import purchased: Product "
+          << product->id << ", Quantity: " << quantity
+          << ", Total cost: " << total_cost << std::endl;
 
-    std::cout << "[Trader] Imported product " << product->id
-              << ", Quantity: " << quantity
-              << ", CE price per unit: " << ce_price_per_unit
-              << ", Total CE cost: " << total_ce_import_cost
-              << ", LTE payment received: " << total_import_cost_in_labor_hours
-              << ", Cash balance: " << cash_balance
-              << std::endl;
+    log_inventory_level(product, input_inventory[product]);
 
     return true;
 }
@@ -138,7 +129,7 @@ void Trader::select_and_order_most_profitable_export() {
     }
 
     double cash_shortfall = CASH_THRESHOLD - cash_balance;
-    double quantity = std::ceil(cash_shortfall / best_ce_price);
+    int quantity = static_cast<int>(std::ceil(cash_shortfall / best_ce_price));
 
     // # Testing
     std::cout << "[Trader] Selected product " << best_product->id
@@ -170,7 +161,7 @@ void Trader::select_and_order_most_profitable_export() {
     }
 }
 
-void Trader::export_product(Product * product, double quantity) {
+void Trader::export_product(Product * product, int quantity) {
     double labor_hours = product->price_per_unit * quantity;
     double ce_price = get_ce_value(product);
     double cash_received = ce_price * quantity;
@@ -195,7 +186,9 @@ void Trader::export_product(Product * product, double quantity) {
 
 void Trader::receive_shipment(Plan * plan) {
     Product * product = plan->order->product;
-    double quantity = plan->order->quantity - plan->quantity_remaining;
+    int quantity = static_cast<int>(
+        plan->order->quantity - plan->quantity_remaining
+    );
 
     Firm::receive_shipment(plan);
 
@@ -204,8 +197,72 @@ void Trader::receive_shipment(Plan * plan) {
     }
 }
 
+
+bool Trader::fulfill_import_order(Order * order) {
+    if (order == nullptr || !imported_orders.count(order)) {
+        return false;
+    }
+
+    Product * product = order->product;
+    int quantity = order->quantity;
+
+    if (get_inventory_level(product) < quantity) {
+        return false;
+    }
+
+    Plan shipment{};
+    shipment.order = order;
+    shipment.firm = this;
+    shipment.quantity_remaining = 0;
+    shipment.debt = order->product->price_per_unit * order->quantity;
+
+    double payment = product->price_per_unit * quantity;
+
+    if (!remove_input_from_inventory(product, quantity)) {
+        return false;
+    }
+
+    order->status = Order::kOrderFinished;
+    order->customer->receive_shipment(&shipment);
+
+    account += payment;
+
+    std::cout << "[Trader] Import delivered: Product "
+          << product->id
+          << ", Quantity: " << quantity
+          << ", LTE payment: " << payment << std::endl;
+
+    log_inventory_level(product, get_inventory_level(product));
+    log_account();
+
+    return true;
+}
+
+
+void Trader::process_pending_import_orders() {
+    for (auto it = pending_import_orders.begin();
+         it != pending_import_orders.end();) {
+
+        Order * order = *it;
+
+        if (!imported_orders.count(order)) {
+            if (import_into_inventory(order->product, order->quantity)) {
+                imported_orders.insert(order);
+            }
+        }
+
+        if (fulfill_import_order(order)) {
+            imported_orders.erase(order);
+            it = pending_import_orders.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 void Trader::on_time_step() {
     Firm::on_time_step();
+    process_pending_import_orders();
 
     // # Testing
     std::cout << "\n[Trader] Time step: "

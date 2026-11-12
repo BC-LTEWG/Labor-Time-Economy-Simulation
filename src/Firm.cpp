@@ -177,31 +177,6 @@ void Firm::receive_shipment(Plan * plan) {
     }
 }
 
-void Firm::receive_ce_import(
-    Product * product,
-    double quantity,
-    double cost_in_labor_hours
-) {
-    double inventory_before = get_inventory_level(product);
-    double account_before = account;
-
-    input_inventory[product] += quantity;
-    account -= cost_in_labor_hours;
-
-    log_shipment_received(product, quantity);
-    log_inventory_level(product, input_inventory[product]);
-
-    std::cout << "  Importing firm: "
-              << (get_client_type() == Logger::PRODUCER
-                  ? "Producer"
-                  : "Distributor")
-              << " #" << id << std::endl;
-    std::cout << "  Inventory: " << inventory_before
-              << " -> " << input_inventory[product] << std::endl;
-    std::cout << "  LTE account: " << account_before
-              << " -> " << account << std::endl;
-}
-
 void Firm::process_payment(Plan * plan, double transaction_amount) {
     plan->debt -= transaction_amount;
 }
@@ -274,7 +249,8 @@ int Firm::get_number_available_workers_to_transfer() {
     );
 }
 
-bool Firm::send_order(Order * order) {
+
+Producer * Firm::send_order(Order * order) {
     double order_rate = 0.0;
     Producer * chosen_producer = nullptr;
     Order * chosen_return_order = nullptr;
@@ -306,97 +282,32 @@ bool Firm::send_order(Order * order) {
         }
     }
 
-    if (get_client_type() != Logger::TRADER) {
-        bool enable_ce_import = chosen_producer
-            ? ENABLE_CE_IMPORT_WHEN_LTE_CAN_PROVIDE_PRODUCT
-            : ENABLE_CE_IMPORT_WHEN_LTE_CANNOT_PROVIDE_PRODUCT;
-
-        if (enable_ce_import) {
-            Trader * trader = Society::get_instance()->get_trader();
-
-            double ce_price_per_unit =
-                trader->get_ce_import_price(order->product);
-
-            double total_ce_cost_in_labor_hours =
-                ce_price_per_unit * order->quantity / MELT;
-
-            double total_lte_cost_in_labor_hours =
-                order->product->price_per_unit * order->quantity;
-
-            if (!chosen_producer) {
-                total_lte_cost_in_labor_hours +=
-                    order->requested_turnaround_time *
-                    WAITING_COST_PER_HOUR;
-            }
-
-            if (total_ce_cost_in_labor_hours <
-                total_lte_cost_in_labor_hours) {
-
-                if (trader->import_product_from_ce(
-                    order->product,
-                    order->quantity,
-                    this,
-                    ce_price_per_unit
-                )) {
-                    std::cout << "\n========== CE IMPORT DECISION ==========\n";
-                    std::cout << "Time step: "
-                            << Sim::get_current_time_step() << std::endl;
-                    std::cout << "Firm: "
-                            << (get_client_type() == Logger::PRODUCER
-                                ? "Producer"
-                                : "Distributor")
-                            << " #" << id << std::endl;
-                    std::cout << "Product: " << order->product->id << std::endl;
-                    std::cout << "Quantity: " << order->quantity << std::endl;
-                    std::cout << "LTE producer available: "
-                            << (chosen_producer ? "Yes" : "No") << std::endl;
-
-                    if (chosen_producer) {
-                        std::cout << "LTE supplier: Producer #"
-                                << chosen_producer->get_id() << std::endl;
-                    }
-
-                    std::cout << "LTE product cost: "
-                            << order->product->price_per_unit * order->quantity
-                            << " labor hours" << std::endl;
-                    double waiting_penalty = chosen_producer
-                        ? 0.0
-                        : order->requested_turnaround_time * WAITING_COST_PER_HOUR;
-
-                    std::cout << "Waiting penalty: "
-                            << waiting_penalty << " labor hours" << std::endl;
-
-                    std::cout << "Adjusted LTE cost: "
-                            << total_lte_cost_in_labor_hours
-                            << " labor hours" << std::endl;
-                    std::cout << "CE import cost: "
-                            << total_ce_cost_in_labor_hours
-                            << " labor hours" << std::endl;
-                    std::cout << "Waiting penalty included: "
-                            << (chosen_producer ? "No" : "Yes") << std::endl;
-                    std::cout << "Decision: Import from CE" << std::endl;
-                    std::cout << "Reason: Lower adjusted cost" << std::endl;
-                    std::cout << "========================================\n";
-
-                    if (chosen_producer) {
-                        chosen_producer->drop_order(this);
-                    }
-
-                    delete order;
-                    return true;
-                }
-            }
-        }
-    }
-
     if (chosen_producer) {
         chosen_producer->pursue_order(this);
         product_to_outbound_orders[order->product].insert(chosen_return_order);
         log_accepted_order(order, chosen_return_order);
-        return true;
     }
 
-    return false;
+    return chosen_producer;
+}
+
+bool Firm::should_import(Order * order) {
+    Trader * trader = Society::get_instance()->get_trader();
+
+    double ce_price_per_unit =
+        trader->get_ce_import_price(order->product);
+
+    double total_ce_cost_in_labor_hours =
+        ce_price_per_unit * order->quantity / MELT;
+
+    double total_lte_cost_in_labor_hours =
+        order->product->price_per_unit * order->quantity;
+
+    total_lte_cost_in_labor_hours +=
+        order->requested_turnaround_time * WAITING_COST_PER_HOUR;
+
+    return total_ce_cost_in_labor_hours <
+           total_lte_cost_in_labor_hours;
 }
 
 double Firm::get_reorder_threshold(Product * product) {
@@ -457,8 +368,23 @@ void Firm::check_and_reorder_input(Product * product) {
             this,
             lead_time
             );
-    if (!send_order(order)) {
-        log_reorder_failure(product);
+    Producer * producer = send_order(order);
+
+    if (!producer) {
+        if (should_import(order)) {
+            Trader * trader = Society::get_instance()->get_trader();
+
+            if (trader->receive_import_order(order)) {
+                product_to_outbound_orders[order->product].insert(order);
+            } else {
+                log_reorder_failure(product);
+                delete order;
+            }
+        } else {
+            // TODO: Implement domestic retooling.
+            log_reorder_failure(product);
+            delete order;
+        }
     }
 }
 
@@ -589,8 +515,23 @@ void Firm::reorder_stalled_plan_input(
         lead_time
     );
 
-    if (!send_order(order)) {
-        log_reorder_failure(product);
+    Producer * producer = send_order(order);
+
+    if (!producer) {
+        if (should_import(order)) {
+            Trader * trader = Society::get_instance()->get_trader();
+
+            if (trader->receive_import_order(order)) {
+                product_to_outbound_orders[order->product].insert(order);
+            } else {
+                log_reorder_failure(product);
+                delete order;
+            }
+        } else {
+            // TODO: Implement domestic retooling.
+            log_reorder_failure(product);
+            delete order;
+        }
     }
 }
 
