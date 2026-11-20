@@ -76,7 +76,8 @@ int Distributor::try_sell_goods(
         log_shortfall(consumer_good->id, quantity - available);
     }
     double cost = available * consumer_good->price_per_unit;
-    if (consumer_good->public_sector) {
+    bool public_purchase = consumer_good->public_sector || person->get_is_retired();
+    if (public_purchase) {
         Society::get_instance()->charge_from_public_fund(cost);
     } else if (!person->charge(cost)) {
         return 0;
