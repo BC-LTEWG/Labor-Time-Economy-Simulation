@@ -20,6 +20,7 @@
 #include "Product.h"
 #include "Sim.h"
 #include "Society.h"
+#include "Trader.h"
 
 Firm::Firm() {
     static unsigned int unique_id = 0;
@@ -155,12 +156,28 @@ void Firm::receive_shipment(Plan * plan) {
     double quantity_delivered = order->quantity - plan->quantity_remaining;
     input_inventory[order->product] += quantity_delivered;
     product_to_outbound_orders[order->product].erase(order);
-    double transaction_amount =
-        order->product->price_per_unit * quantity_delivered;
+    double unit_price = order->product->price_per_unit;
+    if (plan->firm->get_client_type() == Logger::TRADER) {
+        Trader * trader = Society::get_instance()->get_trader();
+        unit_price = trader->get_import_lte_price(order);
+    }
+    double transaction_amount = unit_price * quantity_delivered;
     account -= transaction_amount;
     plan->firm->process_payment(plan, transaction_amount);
     log_shipment_received(order->product, quantity_delivered);
     log_inventory_level(order->product, input_inventory[order->product]);
+
+    if (get_client_type() == Logger::TRADER) {
+        std::cout << "[Trader] Shipment received." << std::endl;
+        std::cout << "[Trader] Product ID: "
+                  << order->product->id << std::endl;
+        std::cout << "[Trader] Quantity delivered: "
+                  << quantity_delivered << std::endl;
+        std::cout << "[Trader] Inventory after shipment: "
+                  << input_inventory[order->product] << std::endl;
+        std::cout << "[Trader] Account after shipment: "
+                  << account << std::endl;
+    }
 }
 
 void Firm::process_payment(Plan * plan, double transaction_amount) {
@@ -235,17 +252,22 @@ int Firm::get_number_available_workers_to_transfer() {
     );
 }
 
+
 Producer * Firm::send_order(Order * order) {
     double order_rate = 0.0;
     Producer * chosen_producer = nullptr;
     Order * chosen_return_order = nullptr;
+
     std::vector<Producer *>& suppliers =
         Society::get_instance()->get_suppliers(order->product);
+
     for (Producer * producer : suppliers) {
         Order * return_order = producer->draft_plan_and_return_order(order);
+
         if (return_order->status == Order::kOrderRejected) {
             continue;
         }
+
         double return_order_rate =
             static_cast<double>(return_order->quantity) /
             return_order->requested_turnaround_time;
@@ -254,6 +276,7 @@ Producer * Firm::send_order(Order * order) {
             if (chosen_producer) {
                 chosen_producer->drop_order(this);
             }
+
             order_rate = return_order_rate;
             chosen_producer = producer;
             chosen_return_order = return_order;
@@ -261,12 +284,23 @@ Producer * Firm::send_order(Order * order) {
             producer->drop_order(this);
         }
     }
+
     if (chosen_producer) {
         chosen_producer->pursue_order(this);
         product_to_outbound_orders[order->product].insert(chosen_return_order);
         log_accepted_order(order, chosen_return_order);
     }
+
     return chosen_producer;
+}
+
+bool Firm::should_import(Order * order) {
+    Trader * trader = Society::get_instance()->get_trader();
+
+    double domestic_cost =
+        order->product->price_per_unit * order->quantity;
+
+    return trader->should_import(order, domestic_cost);
 }
 
 double Firm::get_reorder_threshold(Product * product) {
@@ -327,8 +361,23 @@ void Firm::check_and_reorder_input(Product * product) {
             this,
             lead_time
             );
-    if (!send_order(order)) {
-        log_reorder_failure(product);
+    Producer * producer = send_order(order);
+
+    if (!producer) {
+        if (should_import(order)) {
+            Trader * trader = Society::get_instance()->get_trader();
+
+            if (trader->receive_import_order(order)) {
+                product_to_outbound_orders[order->product].insert(order);
+            } else {
+                log_reorder_failure(product);
+                delete order;
+            }
+        } else {
+            // TODO: Implement domestic retooling.
+            log_reorder_failure(product);
+            delete order;
+        }
     }
 }
 
@@ -459,8 +508,23 @@ void Firm::reorder_stalled_plan_input(
         lead_time
     );
 
-    if (!send_order(order)) {
-        log_reorder_failure(product);
+    Producer * producer = send_order(order);
+
+    if (!producer) {
+        if (should_import(order)) {
+            Trader * trader = Society::get_instance()->get_trader();
+
+            if (trader->receive_import_order(order)) {
+                product_to_outbound_orders[order->product].insert(order);
+            } else {
+                log_reorder_failure(product);
+                delete order;
+            }
+        } else {
+            // TODO: Implement domestic retooling.
+            log_reorder_failure(product);
+            delete order;
+        }
     }
 }
 

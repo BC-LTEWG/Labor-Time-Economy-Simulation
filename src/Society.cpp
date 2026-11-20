@@ -640,6 +640,10 @@ std::vector<Firm *>& Society::get_firms() {
     return firms;
 }
 
+Trader * Society::get_trader() {
+    return trader;
+}
+
 std::vector<Distributor *> &Society::get_distributors() {
     return distributors;
 }

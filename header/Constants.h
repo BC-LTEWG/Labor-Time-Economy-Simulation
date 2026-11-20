@@ -86,3 +86,13 @@ const char * const LOG_FILE = "data/lte.db";
 
 const double CE_PRICE_VARIATION = 0.05;
 const double MELT = 1.0;
+
+const bool ENABLE_CE_IMPORT_WHEN_LTE_CANNOT_PROVIDE_PRODUCT = true;
+const bool ENABLE_CE_IMPORT_WHEN_LTE_CAN_PROVIDE_PRODUCT = true;
+
+const double WAITING_COST_PER_HOUR = 0.01;
+
+const double CASH_THRESHOLD = 500.0;
+const double EXPORT_ORDER_MULTIPLIER = 1.2;
+
+const double TRADE_LABOR_COST_MULT = 0.2;
