@@ -156,14 +156,17 @@ void Firm::receive_shipment(Plan * plan) {
     double quantity_delivered = order->quantity - plan->quantity_remaining;
     input_inventory[order->product] += quantity_delivered;
     product_to_outbound_orders[order->product].erase(order);
-    double transaction_amount =
-        order->product->price_per_unit * quantity_delivered;
+    double unit_price = order->product->price_per_unit;
+    if (plan->firm->get_client_type() == Logger::TRADER) {
+        Trader * trader = Society::get_instance()->get_trader();
+        unit_price = trader->get_import_lte_price(order);
+    }
+    double transaction_amount = unit_price * quantity_delivered;
     account -= transaction_amount;
     plan->firm->process_payment(plan, transaction_amount);
     log_shipment_received(order->product, quantity_delivered);
     log_inventory_level(order->product, input_inventory[order->product]);
 
-    // # Testing
     if (get_client_type() == Logger::TRADER) {
         std::cout << "[Trader] Shipment received." << std::endl;
         std::cout << "[Trader] Product ID: "
@@ -294,20 +297,10 @@ Producer * Firm::send_order(Order * order) {
 bool Firm::should_import(Order * order) {
     Trader * trader = Society::get_instance()->get_trader();
 
-    double ce_price_per_unit =
-        trader->get_ce_import_price(order->product);
-
-    double total_ce_cost_in_labor_hours =
-        ce_price_per_unit * order->quantity / MELT;
-
-    double total_lte_cost_in_labor_hours =
+    double domestic_cost =
         order->product->price_per_unit * order->quantity;
 
-    total_lte_cost_in_labor_hours +=
-        order->requested_turnaround_time * WAITING_COST_PER_HOUR;
-
-    return total_ce_cost_in_labor_hours <
-           total_lte_cost_in_labor_hours;
+    return trader->should_import(order, domestic_cost);
 }
 
 double Firm::get_reorder_threshold(Product * product) {

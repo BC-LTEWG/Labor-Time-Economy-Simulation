@@ -12,6 +12,8 @@
 #include "Society.h"
 #include "Plan.h"
 #include "Constants.h"
+#include "Person.h"
+#include <algorithm>
 
 Trader::Trader() : Firm() {}
 
@@ -48,6 +50,131 @@ double Trader::get_ce_import_price(Product * product) {
     return get_ce_value(product);
 }
 
+bool Trader::should_import(Order * order, double domestic_cost) {
+    double ce_price = get_ce_import_price(order->product);
+
+    double labor_cost_per_unit =
+        order->product->price_per_unit * TRADE_LABOR_COST_MULT;
+
+    double import_price_per_unit =
+        ce_price / MELT + labor_cost_per_unit;
+
+    double import_cost =
+        import_price_per_unit * order->quantity;
+
+    if (import_cost >= domestic_cost) {
+        return false;
+    }
+
+    import_ce_prices[order] = ce_price;
+    import_lte_prices[order] = import_price_per_unit;
+
+    return true;
+}
+
+bool Trader::recruit_trade_worker() {
+    auto& unemployed =
+        Society::get_instance()->get_unemployed_people();
+
+    if (!unemployed.empty()) {
+        hire_worker(*unemployed.begin());
+        return true;
+    }
+
+    for (Firm * firm : Society::get_instance()->get_firms()) {
+        if (firm == this) continue;
+
+        auto transfers = firm->propose_transfer(1);
+        if (!transfers.empty()) {
+            hire_worker(transfers.front());
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Trader::process_trade_jobs() {
+    if (!Society::get_instance()->is_within_work_schedule()) {
+        return;
+    }
+
+    if (pending_trade_jobs.empty()) {
+        return;
+    }
+
+    if (standby_workers.empty()) {
+        recruit_trade_worker();
+    }
+
+    if (standby_workers.empty()) {
+        return;
+    }
+
+    // Track each worker's available labor time.
+    std::unordered_map<Person *, double> available_hours;
+
+    for (Person * worker : standby_workers) {
+        available_hours[worker] = 1.0;
+    }
+
+    for (auto it = pending_trade_jobs.begin();
+         it != pending_trade_jobs.end();) {
+
+        TradeJob& job = *it;
+
+        for (Person * worker : standby_workers) {
+            if (job.labor_hours_remaining <= 1e-9) {
+                break;
+            }
+
+            double& remaining = available_hours[worker];
+
+            if (remaining <= 1e-9) {
+                continue;
+            }
+
+            double hours = std::min(
+                remaining,
+                job.labor_hours_remaining
+            );
+
+            worker->register_hours_worked(hours);
+            account -= hours;
+            labor_hours_this_time_step += hours;
+
+            remaining -= hours;
+            job.labor_hours_remaining -= hours;
+        }
+
+        if (job.labor_hours_remaining <= 1e-9) {
+            if (job.is_export) {
+                export_product(
+                    job.product,
+                    job.quantity,
+                    job.ce_export_unit_price
+                );
+            } else {
+                imported_orders.insert(job.import_order);
+            }
+
+            it = pending_trade_jobs.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+double Trader::get_import_lte_price(Order * order) {
+    auto it = import_lte_prices.find(order);
+
+    if (it == import_lte_prices.end()) {
+        return 0.0;
+    }
+
+    return it->second;
+}
+
 bool Trader::receive_import_order(Order * order) {
     if (order == nullptr || order->quantity <= 0 ||
         order->customer == nullptr) {
@@ -62,27 +189,26 @@ bool Trader::receive_import_order(Order * order) {
     return true;
 }
 
-bool Trader::import_into_inventory(Product * product, int quantity) {
-    if (product == nullptr || quantity <= 0) {
+bool Trader::import_into_inventory(Order * order) {
+    if (!order || !import_ce_prices.count(order)) {
         return false;
     }
 
-    double ce_price = get_ce_import_price(product);
+    Product * product = order->product;
+    int quantity = order->quantity;
+
+    double ce_price = import_ce_prices.at(order);
     double total_cost = ce_price * quantity;
 
-    if (ce_price <= 0 || cash_balance < total_cost) {
+    if (quantity <= 0 || ce_price <= 0.0 ||
+        cash_balance < total_cost) {
         return false;
     }
 
     cash_balance -= total_cost;
     input_inventory[product] += quantity;
 
-    std::cout << "[Trader] CE import purchased: Product "
-          << product->id << ", Quantity: " << quantity
-          << ", Total cost: " << total_cost << std::endl;
-
     log_inventory_level(product, input_inventory[product]);
-
     return true;
 }
 
@@ -99,6 +225,12 @@ void Trader::select_and_order_most_profitable_export() {
         }
     }
 
+    for (const TradeJob& job : pending_trade_jobs) {
+        if (job.is_export) {
+            return;
+        }
+    }
+
     Product * best_product = nullptr;
     double best_profit = 0.0;
     double best_ce_price = 0.0;
@@ -109,7 +241,12 @@ void Trader::select_and_order_most_profitable_export() {
         }
 
         double ce_price = get_ce_value(product);
-        double profit = ce_price / get_melt() - product->price_per_unit;
+        double trade_labor_cost = product->price_per_unit * TRADE_LABOR_COST_MULT;
+
+        double profit =
+            ce_price / get_melt()
+            - product->price_per_unit
+            - trade_labor_cost;
 
         // # Testing
         std::cout << "[Trader] Product " << product->id
@@ -129,7 +266,11 @@ void Trader::select_and_order_most_profitable_export() {
     }
 
     double cash_shortfall = CASH_THRESHOLD - cash_balance;
-    int quantity = static_cast<int>(std::ceil(cash_shortfall / best_ce_price));
+    int quantity = static_cast<int>(
+        std::ceil(
+            (cash_shortfall / best_ce_price) * EXPORT_ORDER_MULTIPLIER
+        )
+    );
 
     // # Testing
     std::cout << "[Trader] Selected product " << best_product->id
@@ -144,6 +285,10 @@ void Trader::select_and_order_most_profitable_export() {
     std::cout << "[Trader] Ordering quantity: "
               << quantity << std::endl;
 
+    if (quantity <= 0) {
+        return;
+    }
+
     Order * order = new Order(
         best_product,
         quantity,
@@ -156,22 +301,22 @@ void Trader::select_and_order_most_profitable_export() {
         std::cout << "[Trader] Order failed." << std::endl;
         delete order;
     } else {
+        export_ce_prices[order] = best_ce_price;
+
         // # Testing
         std::cout << "[Trader] Order successfully placed." << std::endl;
     }
 }
 
-void Trader::export_product(Product * product, int quantity) {
-    double labor_hours = product->price_per_unit * quantity;
-    double ce_price = get_ce_value(product);
+void Trader::export_product(
+    Product * product,
+    int quantity,
+    double ce_price
+) {
+    double labor_hours =
+        product->price_per_unit * quantity * TRADE_LABOR_COST_MULT;
+
     double cash_received = ce_price * quantity;
-
-    if (!remove_input_from_inventory(product, quantity)) {
-        std::cerr << "[Trader] Export failed: insufficient inventory."
-                  << std::endl;
-        return;
-    }
-
     cash_balance += cash_received;
 
     // # Testing
@@ -185,21 +330,46 @@ void Trader::export_product(Product * product, int quantity) {
 }
 
 void Trader::receive_shipment(Plan * plan) {
-    Product * product = plan->order->product;
+    Order * order = plan->order;
+    Product * product = order->product;
+
     int quantity = static_cast<int>(
-        plan->order->quantity - plan->quantity_remaining
+        order->quantity - plan->quantity_remaining
     );
 
-    Firm::receive_shipment(plan);
+    product_to_outbound_orders[product].erase(order);
+
+    double transaction_amount =
+        product->price_per_unit * quantity;
+
+    account -= transaction_amount;
+    plan->firm->process_payment(plan, transaction_amount);
 
     if (quantity > 0) {
-        export_product(product, quantity);
+        double labor_hours =
+            product->price_per_unit *
+            quantity *
+            TRADE_LABOR_COST_MULT;
+
+        double ce_price = export_ce_prices.at(order);
+
+        pending_trade_jobs.push_back({
+            product,
+            quantity,
+            nullptr,
+            labor_hours,
+            true,
+            ce_price
+        });
+
+        export_ce_prices.erase(order);
     }
+
+    log_account();
 }
 
-
 bool Trader::fulfill_import_order(Order * order) {
-    if (order == nullptr || !imported_orders.count(order)) {
+    if (!order || !imported_orders.count(order)) {
         return false;
     }
 
@@ -210,13 +380,14 @@ bool Trader::fulfill_import_order(Order * order) {
         return false;
     }
 
+    double payment =
+        get_import_lte_price(order) * quantity;
+
     Plan shipment{};
     shipment.order = order;
     shipment.firm = this;
     shipment.quantity_remaining = 0;
-    shipment.debt = order->product->price_per_unit * order->quantity;
-
-    double payment = product->price_per_unit * quantity;
+    shipment.debt = payment;
 
     if (!remove_input_from_inventory(product, quantity)) {
         return false;
@@ -227,17 +398,11 @@ bool Trader::fulfill_import_order(Order * order) {
 
     account += payment;
 
-    std::cout << "[Trader] Import delivered: Product "
-          << product->id
-          << ", Quantity: " << quantity
-          << ", LTE payment: " << payment << std::endl;
-
     log_inventory_level(product, get_inventory_level(product));
     log_account();
 
     return true;
 }
-
 
 void Trader::process_pending_import_orders() {
     for (auto it = pending_import_orders.begin();
@@ -245,14 +410,33 @@ void Trader::process_pending_import_orders() {
 
         Order * order = *it;
 
-        if (!imported_orders.count(order)) {
-            if (import_into_inventory(order->product, order->quantity)) {
-                imported_orders.insert(order);
+        if (!purchased_import_orders.count(order)) {
+            if (import_into_inventory(order)) {
+                purchased_import_orders.insert(order);
+
+                double labor_hours =
+                    order->product->price_per_unit *
+                    order->quantity *
+                    TRADE_LABOR_COST_MULT;
+
+                pending_trade_jobs.push_back({
+                    order->product,
+                    order->quantity,
+                    order,
+                    labor_hours,
+                    false
+                });
             }
         }
 
-        if (fulfill_import_order(order)) {
+        if (imported_orders.count(order) &&
+            fulfill_import_order(order)) {
+
             imported_orders.erase(order);
+            purchased_import_orders.erase(order);
+            import_ce_prices.erase(order);
+            import_lte_prices.erase(order);
+
             it = pending_import_orders.erase(it);
         } else {
             ++it;
@@ -262,6 +446,9 @@ void Trader::process_pending_import_orders() {
 
 void Trader::on_time_step() {
     Firm::on_time_step();
+
+    process_pending_import_orders();
+    process_trade_jobs();
     process_pending_import_orders();
 
     // # Testing
