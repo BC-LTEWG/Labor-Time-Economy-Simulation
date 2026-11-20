@@ -267,10 +267,16 @@ std::vector<Producer *>& Society::get_suppliers(Product * product) {
 
 void Society::update_busyness() {
     busyness = 0.0;
+    int active_workers = 0;
     for (Person * person : people) {
-        busyness += person->get_busyness();
+        if(!person->get_is_retired()) {
+            busyness += person->get_busyness();
+            active_workers++;
+        }
     }
-    busyness /= people.size();
+    if(active_workers > 0) {
+        busyness /= active_workers;
+    }
 }
 
 double Society::get_busyness() {
@@ -684,7 +690,12 @@ Person * Society::birth_person() {
 }
 
 void Society::retire_person(Person *person) {
-    // unimplemented until hiring/reallocation is done
+    if(person->get_firm() != nullptr) {
+        person->get_firm()->unassign_worker(person);
+        person->set_firm(nullptr);
+    } else {
+        unemployed_people.erase(person);
+    }
 }
 
 void Society::pay_into_public_fund(double amount) {

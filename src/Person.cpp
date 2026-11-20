@@ -53,6 +53,10 @@ unsigned int Person::get_id() {
     return id;
 }
 
+bool Person::get_is_retired() {
+    return is_retired;
+}
+
 std::unordered_map<Ability *, double>& Person::get_abilities() {
     return abilities;
 }
@@ -158,7 +162,7 @@ void Person::shop() {
             (int) (PERSON_STOCKPILE_DURATION * consumer_good->mean_consumption_frequency) - 
             inventory[consumer_good]
         );
-        if (consumer_good->public_sector) {
+        if (consumer_good->public_sector || is_retired) {
             continue;
         }
         total_price += purchase_quantities[consumer_good] * 
@@ -167,7 +171,7 @@ void Person::shop() {
     double price_scalar = std::min(account / total_price, 1.0);
     for (std::pair<ConsumerGood *, int> consumer_good : purchase_quantities) {
         int quantity = consumer_good.second;
-        if (!consumer_good.first->public_sector) {
+        if (!consumer_good.first->public_sector && !is_retired) {
             quantity = (int) (price_scalar * consumer_good.second);
         }
         if (quantity > 0) {
@@ -183,7 +187,9 @@ bool Person::will_retire() {
 }
 
 void Person::retire() {
+    is_retired = true;
     Society::get_instance()->retire_person(this);
+    Logger::log(Logger::PERSON, id, "retired", LogPair("age", age));
 }
 
 void Person::update_health_status() {
@@ -237,10 +243,11 @@ void Person::update_busyness() {
 void Person::on_time_step() {
 	++age;
     consume();
-    // this is not a good idea until we implement replacement population growth
-	// if (will_retire()) {
-        // retire();
-    // }
+
+	if (!is_retired && !plan && will_retire()) {
+        retire();
+    }
+
 	update_health_status();
 
 	if (will_shop()) {
